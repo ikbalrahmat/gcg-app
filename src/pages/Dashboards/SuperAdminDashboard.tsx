@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 
+import { fetchApi } from '../../utils/api';
 import { Users, ShieldAlert, Database, Server, Activity, UserCheck, Lock } from 'lucide-react';
 
 interface UserData {
@@ -14,16 +15,14 @@ export default function SuperAdminDashboard() {
   const [usersList, setUsersList] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   useEffect(() => {
     const fetchSystemData = async () => {
-      const token = localStorage.getItem('gcg_token');
       try {
         // Ambil data user untuk statistik
-        const resUsers = await fetch(`${API_URL}/users`, {
-          headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-        });
+        const resUsers = await fetchApi('/users', {
+          });
         
         if (resUsers.ok) {
           const data = await resUsers.json();

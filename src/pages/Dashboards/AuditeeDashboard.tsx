@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { UploadCloud, XCircle, CheckCircle2, FileWarning, ArrowRight, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { MasterAspect } from '../../data/masterIndicators';
@@ -25,19 +26,18 @@ export default function AuditeeDashboard() {
   const [masterAspects, setMasterAspects] = useState<MasterAspect[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('gcg_token');
-      const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+      const headers = {  'Accept': 'application/json' };
       
       const myDivisi = (user?.divisi || '').toLowerCase().trim();
 
       try {
         if (user) {
           // 1. Fetch Document Requests (Pencarian targetDivisi, dan status 'Requested')
-          const resReq = await fetch(`${API_URL}/document-requests`, { headers });
+          const resReq = await fetchApi('/document-requests', { headers });
           let needUploadCount = 0;
           if (resReq.ok) {
             const resData = await resReq.json();
@@ -51,7 +51,7 @@ export default function AuditeeDashboard() {
           }
 
           // 2. Fetch Evidences (Mencocokkan property 'divisi' saja dari API)
-          const resEvi = await fetch(`${API_URL}/evidences`, { headers });
+          const resEvi = await fetchApi('/evidences', { headers });
           let rejectedCount = 0, approvedCount = 0;
           if (resEvi.ok) {
             const resData = await resEvi.json();
@@ -72,13 +72,13 @@ export default function AuditeeDashboard() {
         }
 
         // 3. Load Data Assessment & Master untuk Tabel YoY
-        const resMaster = await fetch(`${API_URL}/master-indicators`, { headers });
+        const resMaster = await fetchApi('/master-indicators', { headers });
         if (resMaster.ok) {
           const resData = await resMaster.json();
           setMasterAspects(Array.isArray(resData) ? resData : (resData.data || []));
         }
 
-        const resAss = await fetch(`${API_URL}/assessments`, { headers });
+        const resAss = await fetchApi('/assessments', { headers });
         if (resAss.ok) {
           const resData = await resAss.json();
           const allAss = Array.isArray(resData) ? resData : (resData.data || []);

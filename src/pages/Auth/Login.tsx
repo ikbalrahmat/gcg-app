@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Lock, Mail, ShieldCheck, ShieldAlert, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, ShieldCheck, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import ReCAPTCHA from "react-google-recaptcha";
 
 interface LoginProps {
   onForgotPassword: () => void;
@@ -11,19 +12,50 @@ export default function Login({ onForgotPassword }: LoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  
+  useEffect(() => {
+    let timer: number | undefined;
+    if (lockoutTimer > 0) {
+      timer = window.setInterval(() => setLockoutTimer(prev => prev - 1), 1000);
+    } else if (lockoutTimer === 0 && failedAttempts >= 3) {
+      setFailedAttempts(0); // Reset kegagalan jika waktu tunggu selesal
+    }
+    return () => clearInterval(timer);
+  }, [lockoutTimer, failedAttempts]);
   
   const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    if (lockoutTimer > 0) return; // Mencegah submit saat terkunci
+    
+    if (!captchaToken) {
+      setError("Verifikasi bahwa Anda bukan robot sebelum melanjutkan.");
+      return;
+    }
 
-    const result = await signIn(email, password);
+    setIsLoading(true);
+    setError('');
+
+    // Kirim kredensial dan captchaToken
+    const result = await signIn(email, password, captchaToken);
     
     if (result.error) {
-      setError(result.error);
+      const newFails = failedAttempts + 1;
+      setFailedAttempts(newFails);
+      
+      if (newFails >= 3) {
+        setLockoutTimer(60); // Paksa kunci selama 60 detik
+        setError('Akses ditutup sementara karena spam. Silakan tunggu 60 detik.');
+      } else {
+         setError(result.error);
+      }
       setIsLoading(false);
+    } else {
+        setFailedAttempts(0); // Reset sukses
     }
   };
 
@@ -113,19 +145,14 @@ export default function Login({ onForgotPassword }: LoginProps) {
 
               <div className="group">
                 <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-indigo-600 transition-colors">Kata Sandi</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    className="block w-full pl-12 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all outline-none font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 focus:bg-white placeholder:font-normal placeholder:text-slate-400"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
+                <input
+                  type="password"
+                  required
+                  className="block w-full px-4 py-4 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all outline-none font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 focus:bg-white placeholder:font-normal placeholder:text-slate-400"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
             </div>
 
@@ -139,13 +166,20 @@ export default function Login({ onForgotPassword }: LoginProps) {
               </button>
             </div>
 
+            <div className="flex justify-center border-t border-b py-4 border-slate-100 mt-4 mb-4">
+               <ReCAPTCHA
+                 sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ""}
+                 onChange={(token) => setCaptchaToken(token)}
+               />
+            </div>
+
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full relative group overflow-hidden flex justify-center items-center py-4 px-4 rounded-2xl text-sm font-black text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-600/30 transition-all uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100"
+              disabled={isLoading || lockoutTimer > 0}
+              className={`w-full relative group overflow-hidden flex justify-center items-center py-4 px-4 rounded-2xl text-sm font-black text-white ${lockoutTimer > 0 ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-600/20 active:scale-[0.98]'} focus:outline-none focus:ring-4 focus:ring-indigo-600/30 transition-all uppercase tracking-widest disabled:opacity-70 disabled:active:scale-100`}
             >
               <span className="relative z-10 flex items-center gap-2">
-                {isLoading ? 'Memverifikasi...' : 'Masuk Sistem'}
+                {isLoading ? 'Memverifikasi...' : lockoutTimer > 0 ? `Dimoderasi (${lockoutTimer}s)` : 'Masuk Sistem'}
                 {!isLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

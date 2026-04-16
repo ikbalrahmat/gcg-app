@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '../../utils/api';
 import {
   Plus, Edit2, Trash2, X, Save, ChevronDown, ChevronRight,
   Database, AlertCircle, CheckCircle,
@@ -33,15 +34,13 @@ const MasterDataManager: React.FC = () => {
   });
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string; } | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
-        const token = localStorage.getItem('gcg_token');
-        const res = await fetch(`${API_URL}/master-indicators`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetchApi('/master-indicators', {
+          });
         if (res.ok) {
           const data = await res.json();
           setMasterData(data);
@@ -61,11 +60,10 @@ const MasterDataManager: React.FC = () => {
 
   const syncToServer = async (dataToSync: MasterAspect[]) => {
     try {
-      const token = localStorage.getItem('gcg_token');
-      const response = await fetch(`${API_URL}/master-indicators/sync`, {
+      const response = await fetchApi('/master-indicators/sync', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(dataToSync)

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fetchApi } from '../../utils/api';
 import { ShieldAlert, KeyRound, CheckCircle2 } from 'lucide-react';
 import type { User } from '../../types';
 
@@ -12,7 +13,7 @@ export default function ChangePassword({ onSuccess }: ChangePasswordProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,16 +25,12 @@ export default function ChangePassword({ onSuccess }: ChangePasswordProps) {
     }
 
     setLoading(true);
-    const token = localStorage.getItem('gcg_token');
-
     try {
-      const response = await fetch(`${API_URL}/change-password`, {
+      const response = await fetchApi('/change-password', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+          
+          'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
       });
 

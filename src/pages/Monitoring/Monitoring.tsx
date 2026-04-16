@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Monitor, ChevronDown, Download, ClipboardList, CheckCircle, Clock, Upload, 
@@ -54,7 +55,7 @@ export default function Monitoring() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<{url: string, name: string} | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   // =====================================================================
   // LOGIKA HIERARKI & HAK AKSES (RBAC)
@@ -70,18 +71,17 @@ export default function Monitoring() {
     (userRole === 'auditor' && ['ketua tim', 'pengendali teknis'].includes(userLevel));
 
   const fetchData = async () => {
-    const token = localStorage.getItem('gcg_token');
-    const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+    const headers = {  'Accept': 'application/json' };
 
     try {
-      const resMaster = await fetch(`${API_URL}/master-indicators`, { headers });
+      const resMaster = await fetchApi('/master-indicators', { headers });
       let aspectsMap: Record<string, string> = {};
       if (resMaster.ok) {
         const md = await resMaster.json();
         md.forEach((a: any) => aspectsMap[a.id] = `${a.id} - ${a.name}`);
       }
 
-      const resAss = await fetch(`${API_URL}/assessments`, { headers });
+      const resAss = await fetchApi('/assessments', { headers });
       if (resAss.ok) {
         const assessments = await resAss.json();
         let extractedTasks: TLTask[] = [];
@@ -127,7 +127,7 @@ export default function Monitoring() {
         }
       }
 
-      const resTl = await fetch(`${API_URL}/tl-records`, { headers });
+      const resTl = await fetchApi('/tl-records', { headers });
       if (resTl.ok) {
         const tlData = await resTl.json();
         setTlRecords(tlData);
@@ -144,11 +144,10 @@ export default function Monitoring() {
 
   // 🔧 FIX: KITA UBAH BIAR BISA NGIRIM FILE FISIK PAKE FORMDATA
   const saveTLToAPI = async (task: TLTask, payloadData: Partial<TLRecord>, fileToUpload?: File) => {
-      const token = localStorage.getItem('gcg_token');
       try {
           let bodyData;
           let headers: HeadersInit = { 
-              'Authorization': `Bearer ${token}`, 
+               
               'Accept': 'application/json' 
           };
 
@@ -181,7 +180,7 @@ export default function Monitoring() {
               });
           }
 
-          const res = await fetch(`${API_URL}/tl-records/${task.id}`, {
+          const res = await fetchApi('/tl-records/${task.id}', {
               method: 'POST',
               headers,
               body: bodyData
@@ -669,7 +668,7 @@ export default function Monitoring() {
                 </div>
               </div>
               <div className="flex items-center space-x-4">
-                <a href={viewingDoc.url} target="_blank" download className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-95 border border-indigo-400/50">
+                <a href={viewingDoc.url.replace(/^http:\/\//i, 'https://')} target="_blank" download className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-95 border border-indigo-400/50">
                   <Download size={14} strokeWidth={3}/> Unduh Asli
                 </a>
                 <button onClick={() => setViewingDoc(null)} className="p-2.5 bg-white/5 hover:bg-rose-500 hover:text-white rounded-xl transition-all active:scale-90 text-slate-400">
@@ -680,14 +679,14 @@ export default function Monitoring() {
             
             <div className="flex-1 bg-slate-100 relative overflow-hidden flex items-center justify-center p-2">
                {viewingDoc.url && viewingDoc.url.endsWith('.pdf') ? (
-                 <iframe src={viewingDoc.url} title={viewingDoc.name} className="w-full h-full border-none rounded-2xl bg-white shadow-inner"/>
+                 <iframe src={viewingDoc.url.replace(/^http:\/\//i, 'https://')} title={viewingDoc.name} className="w-full h-full border-none rounded-2xl bg-white shadow-inner"/>
                ) : (
                  <div className="flex flex-col items-center justify-center p-12 text-center max-w-md bg-white rounded-3xl shadow-sm border border-slate-200">
                    <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6"><AlertTriangle size={48} className="text-slate-300" strokeWidth={1.5} /></div>
                    <h3 className="text-xl font-black text-slate-800 mb-2 truncate w-full px-4">{viewingDoc.name}</h3>
                    <p className="text-slate-500 text-sm font-medium mb-8">Pratinjau langsung hanya didukung untuk format dokumen PDF. Silakan unduh untuk melihat konten selengkapnya.</p>
                    {viewingDoc.url && (
-                    <a href={viewingDoc.url} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95 flex items-center gap-2">
+                    <a href={viewingDoc.url.replace(/^http:\/\//i, 'https://')} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95 flex items-center gap-2">
                       <Download size={16} strokeWidth={3}/> Download File
                     </a>
                    )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Award, Users, ShieldCheck, Briefcase, Megaphone, MoreHorizontal, ChevronRight, Plus, X, ArrowLeft, Trash2, Edit3, Save, Layers, Lock, CheckCircle2 } from 'lucide-react';
 import KertasKerja from './KertasKerja';
@@ -44,16 +45,15 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState<FormData>({ id: null, year: new Date().getFullYear().toString(), tb: '', noSt: '', pt: '', kt: '', members: [{ name: '', aspectId: '' }] });
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('gcg_token');
-      const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+      const headers = {  'Accept': 'application/json' };
 
       // Load Master Data
       try {
-        const resMaster = await fetch(`${API_URL}/master-indicators`, { headers });
+        const resMaster = await fetchApi('/master-indicators', { headers });
         if (resMaster.ok) {
           const mData = await resMaster.json();
           setMasterData(mData);
@@ -65,7 +65,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
 
       // Load Auditors
       try {
-        const resUsers = await fetch(`${API_URL}/auditors`, { headers });
+        const resUsers = await fetchApi('/auditors', { headers });
         if (resUsers.ok) {
           const usersData = await resUsers.json();
           setAuditors(Array.isArray(usersData) ? usersData : (usersData?.data || [])); 
@@ -80,10 +80,8 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
 
   const fetchAssessments = async () => {
     try {
-      const token = localStorage.getItem('gcg_token');
-      const res = await fetch(`${API_URL}/assessments`, { 
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } 
-      });
+      const res = await fetchApi('/assessments', { 
+        });
       if (res.ok) setAssessments(await res.json());
     } catch (err) { console.error(err); }
   };
@@ -93,12 +91,11 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
     const hasEmptyMapping = form.members.some(m => !m.name || !m.aspectId);
     if(hasEmptyMapping) return alert("Pilih Auditor dan Aspek untuk semua mapping!");
 
-    const token = localStorage.getItem('gcg_token');
-    const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    const headers = {  'Content-Type': 'application/json', 'Accept': 'application/json' };
 
     try {
       if (isEditing && form.id) {
-        const res = await fetch(`${API_URL}/assessments/${form.id}`, { method: 'PUT', headers, body: JSON.stringify(form) });
+        const res = await fetchApi('/assessments/${form.id}', { method: 'PUT', headers, body: JSON.stringify(form) });
         if (res.ok) fetchAssessments();
       } else {
         // Rakit Snapshot dari Master Data (Sama seperti versi API sebelumnya)
@@ -117,7 +114,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
         });
 
         const newAssessment = { ...form, id: `ASSESS-${Date.now()}`, data: initialData };
-        const res = await fetch(`${API_URL}/assessments`, { method: 'POST', headers, body: JSON.stringify(newAssessment) });
+        const res = await fetchApi('/assessments', { method: 'POST', headers, body: JSON.stringify(newAssessment) });
         if (res.ok) fetchAssessments();
       }
       closeModal();
@@ -129,9 +126,8 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
   const deleteTb = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (window.confirm("Yakin ingin menghapus assessment ini secara permanen? Seluruh Kertas Kerja di dalamnya akan hilang.")) {
-      const token = localStorage.getItem('gcg_token');
       try {
-        const res = await fetch(`${API_URL}/assessments/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' } });
+        const res = await fetchApi(`/assessments/${id}`, { method: 'DELETE', });
         if (res.ok) fetchAssessments();
       } catch (err) { alert('Gagal menghapus.'); }
     }
@@ -157,9 +153,8 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
     if (!activeAssessmentId) return;
     if (window.confirm("Anda yakin ingin Kunci & Finalisasi Assessment ini?\n\nPerhatian: Setelah difinalisasi, status akan menjadi 'Selesai' dan seluruh Kertas Kerja akan dikunci permanen (Read-Only) bagi semua anggota tim.")) {
       try {
-        const token = localStorage.getItem('gcg_token');
-        const res = await fetch(`${API_URL}/assessments/${activeAssessmentId}/data`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        const res = await fetchApi('/assessments/${activeAssessmentId}/data', {
+          method: 'PUT', headers: {  'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Selesai' })
         });
         if (res.ok) { alert("Assessment berhasil dikunci!"); fetchAssessments(); }
@@ -171,9 +166,8 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
   const handleInteraction = async () => {
     if (activeAssessment && activeAssessment.status === 'Draft') {
       try {
-        const token = localStorage.getItem('gcg_token');
-        await fetch(`${API_URL}/assessments/${activeAssessment.id}/data`, {
-          method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        await fetchApi('/assessments/${activeAssessment.id}/data', {
+          method: 'PUT', headers: {  'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Proses' })
         });
         fetchAssessments();
@@ -190,9 +184,8 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
     
     // Push ke backend
     try {
-      const token = localStorage.getItem('gcg_token');
-      await fetch(`${API_URL}/assessments/${activeAssessment.id}/data`, {
-        method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      await fetchApi('/assessments/${activeAssessment.id}/data', {
+        method: 'PUT', headers: {  'Content-Type': 'application/json' },
         body: JSON.stringify({ data: newData })
       });
     } catch (e) { alert("Gagal menyimpan Kertas Kerja ke server."); }

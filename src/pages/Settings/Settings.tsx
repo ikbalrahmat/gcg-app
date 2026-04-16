@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Settings as SettingsIcon, User, Building, Database, 
@@ -9,7 +10,7 @@ export default function Settings() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   // State untuk Tab
   const [activeTab, setActiveTab] = useState<'profile' | 'system' | 'database'>('profile');
@@ -52,16 +53,12 @@ export default function Settings() {
     if (!user) return;
 
     try {
-      const token = localStorage.getItem('gcg_token');
-      
       // Update via API (Menggunakan endpoint User Management)
-      const res = await fetch(`${API_URL}/users/${user.id}`, {
+      const res = await fetchApi('/users/${user.id}', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+          
+          'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editName,
           email: editEmail,
@@ -97,16 +94,12 @@ export default function Settings() {
     }
 
     try {
-      const token = localStorage.getItem('gcg_token');
-
       // 1. Coba gunakan route khusus /change-password dari AuthController
-      const res = await fetch(`${API_URL}/change-password`, {
+      const res = await fetchApi('/change-password', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+          
+          'Content-Type': 'application/json' },
         body: JSON.stringify({
           old_password: oldPassword,
           new_password: newPassword,
@@ -119,13 +112,11 @@ export default function Settings() {
         alert('Password berhasil diubah! Gunakan password baru untuk login selanjutnya.');
       } else {
         // 2. Fallback: Jika endpoint /change-password gagal
-        const resFallback = await fetch(`${API_URL}/users/${user.id}`, {
+        const resFallback = await fetchApi('/users/${user.id}', {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
+            
+            'Content-Type': 'application/json' },
           body: JSON.stringify({
             password: newPassword,
             name: user.name, 

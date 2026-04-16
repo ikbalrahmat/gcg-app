@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { FileText, CheckCircle, Clock, AlertCircle, UploadCloud, Eye, Trash2, X, Download, Info } from 'lucide-react';
 import type { EvidenceFile, DocumentRequest } from '../../types';
@@ -20,15 +21,14 @@ export default function File(_props: FileProps) {
   const [dbRequests, setDbRequests] = useState<DocumentRequest[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   const fetchData = async () => {
-    const token = localStorage.getItem('gcg_token');
-    const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+    const headers = {  'Accept': 'application/json' };
     try {
-      const resReq = await fetch(`${API_URL}/document-requests`, { headers });
+      const resReq = await fetchApi('/document-requests', { headers });
       if (resReq.ok) setDbRequests(await resReq.json());
-      const resEv = await fetch(`${API_URL}/evidences`, { headers });
+      const resEv = await fetchApi('/evidences', { headers });
       if (resEv.ok) setDbEvidences(await resEv.json());
     } catch (e) { console.error(e); }
   };
@@ -59,8 +59,6 @@ export default function File(_props: FileProps) {
       if (!allowedTypes.includes(file.type)) return alert(`Gagal upload: Format file tidak diizinkan! (Hanya PDF/Excel)`);
 
       setUploading(req.id);
-      const token = localStorage.getItem('gcg_token');
-      
       const formData = new FormData();
       formData.append('file', file);
       formData.append('id', `EV-${Date.now()}`);
@@ -73,17 +71,17 @@ export default function File(_props: FileProps) {
       formData.append('uploadDate', new Date().toLocaleDateString('id-ID'));
 
       try {
-        const res = await fetch(`${API_URL}/evidences`, {
+        const res = await fetchApi('/evidences', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }, // FormData gak butuh Content-Type
+          // FormData gak butuh Content-Type
           body: formData
         });
 
         if (res.ok) {
           // Update Status Tagihan ke Uploaded
-          await fetch(`${API_URL}/document-requests/${req.id}`, {
+          await fetchApi('/document-requests/${req.id}', {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            headers: {  'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'Uploaded', note: req.note })
           });
           fetchData(); // Refresh Layar
@@ -101,15 +99,14 @@ export default function File(_props: FileProps) {
   // 🆕 FUNGSI DELETE DARI SERVER LARAVEL
   const handleDeleteEvidence = async (evId: string, req: DocumentRequest) => {
     if (window.confirm("Yakin ingin menghapus dokumen ini dari server?")) {
-      const token = localStorage.getItem('gcg_token');
-      await fetch(`${API_URL}/evidences/${evId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      await fetchApi('/evidences/${evId}', { method: 'DELETE', });
       
       // Cek sisa file
       const remainingFiles = dbEvidences.filter(e => e.id !== evId && e.assessmentId === req.assessmentId && e.parameterId === req.parameterId && e.divisi === req.targetDivisi);
       if (remainingFiles.length === 0) {
-        await fetch(`${API_URL}/document-requests/${req.id}`, {
+        await fetchApi('/document-requests/${req.id}', {
           method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: {  'Content-Type': 'application/json' },
           body: JSON.stringify({ status: req.note ? 'Rejected' : 'Requested', note: req.note })
         });
       }
@@ -269,7 +266,7 @@ export default function File(_props: FileProps) {
               </div>
               <div className="flex items-center space-x-4">
                 {viewingDocument.fileUrl && (
-                  <a href={viewingDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-95 border border-indigo-400/50">
+                  <a href={viewingDocument.fileUrl.replace(/^http:\/\//i, 'https://')} target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-indigo-500/30 active:scale-95 border border-indigo-400/50">
                     <Download size={14} strokeWidth={3}/> Unduh Asli
                   </a>
                 )}
@@ -279,14 +276,14 @@ export default function File(_props: FileProps) {
             
             <div className="flex-1 bg-slate-100 relative overflow-hidden flex items-center justify-center p-2">
                {viewingDocument.fileUrl && viewingDocument.fileUrl.endsWith('.pdf') ? (
-                 <iframe src={viewingDocument.fileUrl} title={viewingDocument.fileName} className="w-full h-full border-none rounded-2xl bg-white shadow-inner"/>
+                 <iframe src={viewingDocument.fileUrl.replace(/^http:\/\//i, 'https://')} title={viewingDocument.fileName} className="w-full h-full border-none rounded-2xl bg-white shadow-inner"/>
                ) : (
                  <div className="flex flex-col items-center justify-center p-12 text-center max-w-md bg-white rounded-3xl shadow-sm border border-slate-200">
                    <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6"><AlertCircle size={48} className="text-slate-300" strokeWidth={1.5}/></div>
                    <h3 className="text-xl font-black text-slate-800 mb-2 truncate w-full px-4">{viewingDocument.fileName}</h3>
                    <p className="text-slate-500 text-sm font-medium mb-8">Pratinjau langsung hanya didukung untuk format dokumen PDF. Silakan unduh untuk melihat konten selengkapnya.</p>
                    {viewingDocument.fileUrl && (
-                    <a href={viewingDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95 flex items-center gap-2">
+                    <a href={viewingDocument.fileUrl.replace(/^http:\/\//i, 'https://')} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-95 flex items-center gap-2">
                       <Download size={16} strokeWidth={3}/> Download File
                     </a>
                    )}

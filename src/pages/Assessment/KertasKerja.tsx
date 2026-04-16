@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChevronLeft, Edit2, Target, FileText, CheckCircle, Save, Layers, X, UploadCloud, BellRing, Clock, AlertCircle, History as HistoryIcon, Copy, ExternalLink, Download, Trash2, Eye, Lock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react'; 
@@ -53,28 +54,27 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
   const [prevAssessment, setPrevAssessment] = useState<any>(null);
   const [tlRecords, setTlRecords] = useState<any>({});
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   const fetchData = async () => {
-    const token = localStorage.getItem('gcg_token');
-    const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+    const headers = {  'Accept': 'application/json' };
     try {
-      const resDiv = await fetch(`${API_URL}/divisions`, { headers });
+      const resDiv = await fetchApi('/divisions', { headers });
       if (resDiv.ok) {
         const d = await resDiv.json();
         if (Array.isArray(d)) setDivisions(d);
       }
       
-      const resEv = await fetch(`${API_URL}/evidences`, { headers });
+      const resEv = await fetchApi('/evidences', { headers });
       if (resEv.ok) setDbEvidences(await resEv.json());
 
-      const resReq = await fetch(`${API_URL}/document-requests`, { headers });
+      const resReq = await fetchApi('/document-requests', { headers });
       if (resReq.ok) setDbRequests(await resReq.json());
 
-      const resTl = await fetch(`${API_URL}/tl-records`, { headers });
+      const resTl = await fetchApi('/tl-records', { headers });
       if (resTl.ok) setTlRecords(await resTl.json());
 
-      const resAss = await fetch(`${API_URL}/assessments`, { headers });
+      const resAss = await fetchApi('/assessments', { headers });
       if (resAss.ok) {
         const data = await resAss.json();
         if(Array.isArray(data)) {
@@ -133,14 +133,11 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     
     // 2. Tembak API Laravel untuk Simpan Data Kertas Kerja & Update Status
     try {
-      const token = localStorage.getItem('gcg_token');
-      const response = await fetch(`${API_URL}/assessments/${assessmentId}/data`, {
+      const response = await fetchApi('/assessments/${assessmentId}/data', {
         method: 'PUT',
         headers: { 
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+           
+          'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: newAssessmentData,
           status: 'Proses' // <--- Baris ini yang mengubah status ke Proses di database
@@ -166,7 +163,6 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
       
       const { iIdx, pIdx } = modalConfig;
       if (iIdx !== null && pIdx !== null) {
-        const token = localStorage.getItem('gcg_token');
         const formData = new FormData();
         formData.append('file', file);
         formData.append('id', `EV-${Date.now()}`);
@@ -179,9 +175,8 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
         formData.append('uploadDate', new Date().toISOString().split('T')[0]);
 
         try {
-          const response = await fetch(`${API_URL}/evidences`, { 
+          const response = await fetchApi('/evidences', { 
             method: 'POST', 
-            headers: { 'Authorization': `Bearer ${token}` }, 
             body: formData 
           });
 
@@ -204,8 +199,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     e.stopPropagation(); 
     if (isReadOnly) return;
     if (window.confirm("Yakin ingin menghapus dokumen ini dari server?")) {
-      const token = localStorage.getItem('gcg_token');
-      await fetch(`${API_URL}/evidences/${evidenceId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      await fetchApi(`/evidences/${evidenceId}`, { method: 'DELETE', });
       fetchData();
       if(onInteraction) onInteraction();
     }
@@ -217,15 +211,14 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     const { iIdx, pIdx } = modalConfig;
     if (iIdx !== null && pIdx !== null) {
       const parameter = data[iIdx].parameters[pIdx];
-      const token = localStorage.getItem('gcg_token');
       const payload = {
         id: `REQ-${Date.now()}`, assessmentId, assessmentYear, aspectId: aspect.id, indicatorId: data[iIdx].id, 
         parameterId: parameter.id, parameterName: parameter.parameterName, targetDivisi: requestDivisi, 
         requestedBy: user?.name || 'Auditor', requestDate: new Date().toLocaleDateString('id-ID'), note: requestNote
       };
       
-      await fetch(`${API_URL}/document-requests`, {
-        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      await fetchApi('/document-requests', {
+        method: 'POST', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       setRequestDivisi(''); setRequestNote('');
       fetchData();
@@ -235,11 +228,10 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
 
   const handleVerifyApprove = async (evidenceId: string, parameterId: string) => {
     if(isReadOnly) return;
-    const token = localStorage.getItem('gcg_token');
-    await fetch(`${API_URL}/evidences/${evidenceId}/status`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified'}) });
+    await fetchApi(`/evidences/${evidenceId}/status`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified'}) });
     const reqToUpdate = dbRequests.find(r => r.assessmentId === assessmentId && r.parameterId === parameterId);
     if(reqToUpdate) {
-      await fetch(`${API_URL}/document-requests/${reqToUpdate.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified', note: ''}) });
+      await fetchApi(`/document-requests/${reqToUpdate.id}`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified', note: ''}) });
     }
     fetchData();
     if(onInteraction) onInteraction();
@@ -248,11 +240,10 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
   const handleVerifyReject = async (evidenceId: string, parameterId: string) => {
     if(isReadOnly) return;
     if (!rejectNoteInput.trim()) return alert("Alasan penolakan / revisi harus diisi!");
-    const token = localStorage.getItem('gcg_token');
-    await fetch(`${API_URL}/evidences/${evidenceId}/status`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected'}) });
+    await fetchApi(`/evidences/${evidenceId}/status`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected'}) });
     const reqToUpdate = dbRequests.find(r => r.assessmentId === assessmentId && r.parameterId === parameterId);
     if(reqToUpdate) {
-      await fetch(`${API_URL}/document-requests/${reqToUpdate.id}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected', note: rejectNoteInput}) });
+      await fetchApi(`/document-requests/${reqToUpdate.id}`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected', note: rejectNoteInput}) });
     }
     setRejectingId(null); setRejectNoteInput('');
     fetchData();
@@ -263,14 +254,13 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     if(isReadOnly) return;
     
     if(window.confirm(`Gunakan dokumen arsip "${historyEv.fileName}" (TB ${historyEv.assessmentYear}) untuk tahun ini?`)) {
-      const token = localStorage.getItem('gcg_token');
       const newEvId = `EV-${Date.now()}`;
       
       try {
-        const response = await fetch(`${API_URL}/evidences/${historyEv.id}/copy`, {
+        const response = await fetchApi('/evidences/${historyEv.id}/copy', {
           method: 'POST',
           headers: { 
-            'Authorization': `Bearer ${token}`,
+            
             'Content-Type': 'application/json' 
           },
           body: JSON.stringify({
@@ -805,7 +795,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
               </div>
               <div className="flex items-center space-x-2">
                 {viewingDocument.fileUrl && (
-                  <a href={viewingDocument.fileUrl} target="_blank" download className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-2">
+                  <a href={viewingDocument.fileUrl.replace(/^http:\/\//i, 'https://')} target="_blank" download className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-2">
                     <Download size={14}/> Unduh File
                   </a>
                 )}
@@ -816,7 +806,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
             </div>
             <div className="flex-1 bg-slate-100 relative overflow-hidden flex items-center justify-center">
                {viewingDocument.fileUrl && viewingDocument.fileUrl.endsWith('.pdf') ? (
-                 <iframe src={viewingDocument.fileUrl} title={viewingDocument.fileName} className="w-full h-full border-none bg-white"></iframe>
+                 <iframe src={viewingDocument.fileUrl.replace(/^http:\/\//i, 'https://')} title={viewingDocument.fileName} className="w-full h-full border-none bg-white"></iframe>
                ) : (
                  <div className="flex flex-col items-center justify-center p-8 text-center max-w-md">
                    <AlertCircle size={64} className="text-slate-300 mb-4" />

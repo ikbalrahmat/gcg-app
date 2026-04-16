@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchApi } from '../../utils/api';
 import { Activity, Search, ShieldAlert, CheckCircle2, XCircle, LogOut, Edit, Trash2, PlusCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -6,20 +7,13 @@ export default function ActivityLog() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   useEffect(() => {
     const fetchLogs = async () => {
-      const token = localStorage.getItem('gcg_token');
-      if (!token) return;
-
       try {
-        const response = await fetch(`${API_URL}/audit-logs`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
+        const response = await fetchApi('/audit-logs', {
+          });
         if (response.ok) {
           const data = await response.json();
           setLogs(data);

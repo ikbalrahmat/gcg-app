@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Shield, Search, Trash2, Edit, X, Unlock, UserCheck } from 'lucide-react';
+import { fetchApi } from '../../utils/api';
+import { Users, Plus, Shield, Search, Trash2, Edit, X, Unlock, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import type { User, UserRole, AuditorLevel } from '../../types';
 
@@ -9,6 +10,8 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -23,19 +26,12 @@ export default function UserManagement() {
   const [divisi, setDivisi] = useState('');
   const [isCustomDivisi, setIsCustomDivisi] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   const fetchUsers = async () => {
-    const token = localStorage.getItem('gcg_token'); 
-    if (!token) return;
-
     try {
-      const response = await fetch(`${API_URL}/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
+      const response = await fetchApi('/users', {
+        });
       const data = await response.json();
       if (response.ok) {
         setUsers(data);
@@ -48,6 +44,10 @@ export default function UserManagement() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, pageSize, users]);
 
   const existingDivisions = Array.from(
     new Set(users.filter(u => u.role === 'auditee' && u.divisi).map(u => u.divisi as string))
@@ -81,8 +81,6 @@ export default function UserManagement() {
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = localStorage.getItem('gcg_token');
-
     if (role === 'auditee' && !divisi.trim()) {
       alert("Harap pilih atau masukkan nama Divisi!");
       return;
@@ -98,14 +96,14 @@ export default function UserManagement() {
       payload.password = password;
     }
 
-    const endpoint = isEditMode ? `${API_URL}/users/${editingId}` : `${API_URL}/users`;
+    const endpoint = isEditMode ? `/users/${editingId}` : `/users`;
     const method = isEditMode ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetchApi(endpoint, {
         method: method,
         headers: {
-          'Authorization': `Bearer ${token}`,
+          
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -135,8 +133,6 @@ export default function UserManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    const token = localStorage.getItem('gcg_token');
-
     const target = users.find(u => u.id === id);
     if (!target) return;
 
@@ -147,13 +143,9 @@ export default function UserManagement() {
 
     if (window.confirm(`Yakin ingin menghapus pengguna ${target.name}?`)) {
       try {
-        const response = await fetch(`${API_URL}/users/${id}`, {
+        const response = await fetchApi(`/users/${id}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
+          });
 
         if (response.ok) {
           fetchUsers(); 
@@ -168,17 +160,11 @@ export default function UserManagement() {
   };
 
   const handleUnlock = async (id: string, userName: string) => {
-    const token = localStorage.getItem('gcg_token');
-    
     if (window.confirm(`Buka akses masuk untuk akun ${userName}?`)) {
       try {
-        const response = await fetch(`${API_URL}/users/${id}/unlock`, {
+        const response = await fetchApi(`/users/${id}/unlock`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-          }
-        });
+          });
 
         const data = await response.json();
 
@@ -209,6 +195,11 @@ export default function UserManagement() {
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const startIndex = filteredUsers.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(currentPage * pageSize, filteredUsers.length);
+  const currentPageUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-8 pb-10 text-left animate-in fade-in duration-500 max-w-7xl mx-auto min-w-0">
@@ -243,16 +234,38 @@ export default function UserManagement() {
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm shadow-slate-200/50 overflow-hidden">
         
         {/* Toolbar */}
-        <div className="p-5 border-b border-indigo-50 flex items-center justify-between bg-white relative z-10">
-          <div className="relative w-full sm:w-80 group">
-            <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
-            <input
-              type="text"
-              placeholder="Cari berdasarkan nama atau email..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 focus:bg-white rounded-2xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all placeholder:font-normal placeholder:text-slate-400"
-            />
+        <div className="p-5 border-b border-indigo-50 bg-white relative z-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:w-80 group">
+              <Search className="absolute left-4 top-3.5 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+              <input
+                type="text"
+                placeholder="Cari berdasarkan nama atau email..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border-2 border-slate-100 bg-slate-50 hover:bg-slate-100 focus:bg-white rounded-2xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all placeholder:font-normal placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-3 text-slate-600 text-xs uppercase tracking-[0.18em] font-black">
+                <span>Baris</span>
+                <select
+                  value={pageSize}
+                  onChange={e => setPageSize(Number(e.target.value))}
+                  className="px-3 py-2 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-600/10 focus:border-indigo-600"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="text-slate-500 text-sm font-semibold">
+                Menampilkan {startIndex}-{endIndex} dari {filteredUsers.length}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -280,7 +293,7 @@ export default function UserManagement() {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map(u => (
+                currentPageUsers.map(u => (
                   <tr key={u.id} className="hover:bg-indigo-50/40 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -367,6 +380,31 @@ export default function UserManagement() {
             </tbody>
           </table>
         </div>
+
+        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-slate-600 text-sm">
+          <div>
+            Menampilkan <span className="font-black text-slate-800">{startIndex}-{endIndex}</span> dari <span className="font-black text-slate-800">{filteredUsers.length}</span> pengguna
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              className="px-3 py-2 rounded-2xl border border-slate-200 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="font-black">{currentPage} / {totalPages}</span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              className="px-3 py-2 rounded-2xl border border-slate-200 bg-white text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* FORM MODAL - GLASSMORPHISM UI */}
@@ -410,6 +448,7 @@ export default function UserManagement() {
                   </label>
                   <input 
                     required={!isEditMode} 
+                    type="password"
                     value={password} 
                     onChange={e=>setPassword(e.target.value)} 
                     placeholder={isEditMode ? "Kosongkan jika tidak ingin ganti sandi" : "Min 8 kar (A-Z, a-z, 0-9, Simbol)"} 

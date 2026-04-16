@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 
+import { fetchApi } from '../../utils/api';
 import { AlertCircle, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { MasterAspect } from '../../data/masterIndicators';
 
@@ -17,23 +18,22 @@ export default function Dashboard() {
   const [masterAspects, setMasterAspects] = useState<MasterAspect[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  
 
   // LOAD DATA DARI DATABASE (API)
   useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem('gcg_token');
-      const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+      const headers = {  'Accept': 'application/json' };
 
       try {
         // 1. Fetch Master Indicators
-        const resMaster = await fetch(`${API_URL}/master-indicators`, { headers });
+        const resMaster = await fetchApi('/master-indicators', { headers });
         if (resMaster.ok) {
           setMasterAspects(await resMaster.json());
         }
 
         // 2. Fetch Assessments
-        const resAss = await fetch(`${API_URL}/assessments`, { headers });
+        const resAss = await fetchApi('/assessments', { headers });
         if (resAss.ok) {
           const allAss = await resAss.json();
           // Filter out Draft dan urutkan dari tahun terbaru
