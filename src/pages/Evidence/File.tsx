@@ -79,7 +79,7 @@ export default function File(_props: FileProps) {
 
         if (res.ok) {
           // Update Status Tagihan ke Uploaded
-          await fetchApi('/document-requests/${req.id}', {
+          await fetchApi(`/document-requests/${req.id}`, {
             method: 'PUT',
             headers: {  'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'Uploaded', note: req.note })
@@ -99,12 +99,12 @@ export default function File(_props: FileProps) {
   // 🆕 FUNGSI DELETE DARI SERVER LARAVEL
   const handleDeleteEvidence = async (evId: string, req: DocumentRequest) => {
     if (window.confirm("Yakin ingin menghapus dokumen ini dari server?")) {
-      await fetchApi('/evidences/${evId}', { method: 'DELETE', });
+      await fetchApi(`/evidences/${evId}`, { method: 'DELETE', });
       
       // Cek sisa file
       const remainingFiles = dbEvidences.filter(e => e.id !== evId && e.assessmentId === req.assessmentId && e.parameterId === req.parameterId && e.divisi === req.targetDivisi);
       if (remainingFiles.length === 0) {
-        await fetchApi('/document-requests/${req.id}', {
+        await fetchApi(`/document-requests/${req.id}`, {
           method: 'PUT',
           headers: {  'Content-Type': 'application/json' },
           body: JSON.stringify({ status: req.note ? 'Rejected' : 'Requested', note: req.note })

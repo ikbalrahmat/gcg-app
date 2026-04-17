@@ -180,7 +180,7 @@ export default function Monitoring() {
               });
           }
 
-          const res = await fetchApi('/tl-records/${task.id}', {
+          const res = await fetchApi(`/tl-records/${task.id}`, {
               method: 'POST',
               headers,
               body: bodyData

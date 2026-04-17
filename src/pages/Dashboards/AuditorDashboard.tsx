@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 import { fetchApi } from '../../utils/api';
 import { FileSearch, Clock, AlertCircle, FileText, ArrowRight, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -13,7 +14,16 @@ interface AssessmentMeta {
 }
 
 export default function AuditorDashboard() {
-  
+  const { user } = useAuth();
+  const userRole = String(user?.role || '').toLowerCase().trim();
+  const userLevel = String(user?.level || '').toLowerCase().trim();
+  const myName = (user?.name || '').toLowerCase().trim();
+
+  // God mode untuk Ketua Tim atau Admin
+  const isGodMode =
+    ['super_admin', 'admin_spi', 'admin', 'manajemen'].includes(userRole) ||
+    (userRole === 'auditor' && ['ketua tim', 'pengendali teknis'].includes(userLevel));
+
   const [stats, setStats] = useState({
     pendingEvidences: 0,
     openRequests: 0,
@@ -25,48 +35,14 @@ export default function AuditorDashboard() {
   const [masterAspects, setMasterAspects] = useState<MasterAspect[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>('');
 
-  
+
 
   useEffect(() => {
     const fetchData = async () => {
-      const headers = {  'Accept': 'application/json' };
+      const headers = { 'Accept': 'application/json' };
 
       try {
-        // 1. Fetch Dokumen Bukti (Mencari status: 'Menunggu Verifikasi')
-        const resEvi = await fetchApi('/evidences', { headers });
-        let pendingEvi = 0;
-        if (resEvi.ok) {
-          const resData = await resEvi.json();
-          const eviData = Array.isArray(resData) ? resData : (resData.data || []);
-          if (Array.isArray(eviData)) {
-            pendingEvi = eviData.filter((e: any) => e.status === 'Menunggu Verifikasi' || e.status === 'Pending').length;
-          }
-        }
-
-        // 2. Fetch Document Requests (Mencari status: 'Requested')
-        const resReq = await fetchApi('/document-requests', { headers });
-        let openReq = 0;
-        if (resReq.ok) {
-          const resData = await resReq.json();
-          const reqData = Array.isArray(resData) ? resData : (resData.data || []);
-          if (Array.isArray(reqData)) {
-            openReq = reqData.filter((r: any) => r.status === 'Requested' || r.status === 'Open').length;
-          }
-        }
-
-        // 3. Fetch TL Records (Karena API mereturn Object keyBy('id'), kita convert ke array dulu)
-        const resTL = await fetchApi('/tl-records', { headers });
-        let openTL = 0;
-        if (resTL.ok) {
-          const resData = await resTL.json();
-          // Convert object ke array menggunakan Object.values()
-          const tlArray = Array.isArray(resData) ? resData : Object.values(resData || {});
-          openTL = tlArray.filter((t: any) => t.status !== 'Closed' && t.status !== 'Selesai').length;
-        }
-
-        setStats({ pendingEvidences: pendingEvi, openRequests: openReq, openTLs: openTL });
-
-        // 4. Load Data Assessment & Master untuk Tabel YoY
+        // 1. Fetch Master Data & Assessments terlebih dahulu untuk referensi TL filtering
         const resMaster = await fetchApi('/master-indicators', { headers });
         if (resMaster.ok) {
           const resData = await resMaster.json();
@@ -74,19 +50,105 @@ export default function AuditorDashboard() {
         }
 
         const resAss = await fetchApi('/assessments', { headers });
+        let fetchedAssessments: any[] = [];
         if (resAss.ok) {
           const resData = await resAss.json();
           const allAss = Array.isArray(resData) ? resData : (resData.data || []);
-          
           if (Array.isArray(allAss)) {
             const filtered = allAss.filter((a: any) => a.status !== 'Draft');
             filtered.sort((a: any, b: any) => Number(b.year) - Number(a.year));
+            fetchedAssessments = filtered;
             setAssessments(filtered);
             if (filtered.length > 0 && !selectedAssessmentId) {
               setSelectedAssessmentId(filtered[0].id);
             }
           }
         }
+
+        // 2. Fetch Document Requests
+        const resReq = await fetchApi('/document-requests', { headers });
+        let openReq = 0;
+        let myParamIds: string[] = []; // Simpan parameterId untuk memfilter Evidence (Dokumen Bukti)
+        if (resReq.ok) {
+          const resData = await resReq.json();
+          const reqData = Array.isArray(resData) ? resData : (resData.data || []);
+          if (Array.isArray(reqData)) {
+            const myRequests = isGodMode ? reqData : reqData.filter((r: any) => {
+              const reqBy = (r.requestedBy || '').toLowerCase().trim();
+              return reqBy === myName;
+            });
+            myParamIds = myRequests.map((r: any) => r.parameterId);
+            openReq = myRequests.filter((r: any) => r.status === 'Requested' || r.status === 'Open').length;
+          }
+        }
+
+        // 3. Fetch Dokumen Bukti (Mencari status: 'Menunggu Verifikasi')
+        const resEvi = await fetchApi('/evidences', { headers });
+        let pendingEvi = 0;
+        if (resEvi.ok) {
+          const resData = await resEvi.json();
+          const eviData = Array.isArray(resData) ? resData : (resData.data || []);
+          if (Array.isArray(eviData)) {
+            const myEvi = isGodMode ? eviData : eviData.filter((e: any) => myParamIds.includes(e.parameterId));
+            pendingEvi = myEvi.filter((e: any) => e.status === 'Menunggu Verifikasi' || e.status === 'Pending').length;
+          }
+        }
+
+        // 4. Fetch TL Records dan filter sesuai dengan `picAuditor` dari Assessments
+        const resTL = await fetchApi('/tl-records', { headers });
+        let openTL = 0;
+        if (resTL.ok) {
+          const resData = await resTL.json();
+          const tlRecordsDict = (resData && !Array.isArray(resData)) ? resData : {};
+
+          if (isGodMode) {
+            let godTaskCount = 0;
+            let godClosedCount = 0;
+            fetchedAssessments.forEach((ass: any) => {
+              if (ass.status !== 'Draft' && ass.data && typeof ass.data === 'object') {
+                Object.entries(ass.data).forEach(([aspectId, indicators]: [string, any]) => {
+                  indicators.forEach((ind: any) => {
+                    ind.parameters.forEach((param: any) => {
+                      param.factors.forEach((factor: any) => {
+                        if (factor.recommendation && factor.dueDate) {
+                          godTaskCount++;
+                          const tId = `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
+                          const tlStatus = tlRecordsDict[tId]?.status;
+                          if (tlStatus === 'Closed' || tlStatus === 'Selesai') godClosedCount++;
+                        }
+                      });
+                    });
+                  });
+                });
+              }
+            });
+            openTL = godTaskCount - godClosedCount;
+          } else {
+            let myTaskCount = 0;
+            let myClosedCount = 0;
+            fetchedAssessments.forEach((ass: any) => {
+              if (ass.status !== 'Draft' && ass.data && typeof ass.data === 'object') {
+                Object.entries(ass.data).forEach(([aspectId, indicators]: [string, any]) => {
+                  indicators.forEach((ind: any) => {
+                    ind.parameters.forEach((param: any) => {
+                      param.factors.forEach((factor: any) => {
+                        if (factor.recommendation && factor.dueDate && (factor.picAuditor || '').toLowerCase().trim() === myName) {
+                          myTaskCount++;
+                          const tId = `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
+                          const tlStatus = tlRecordsDict[tId]?.status;
+                          if (tlStatus === 'Closed' || tlStatus === 'Selesai') myClosedCount++;
+                        }
+                      });
+                    });
+                  });
+                });
+              }
+            });
+            openTL = myTaskCount - myClosedCount;
+          }
+        }
+
+        setStats({ pendingEvidences: pendingEvi, openRequests: openReq, openTLs: openTL });
 
       } catch (error) {
         console.error("Gagal load data", error);
@@ -124,13 +186,13 @@ export default function AuditorDashboard() {
 
       let skorPrev = 0, persenPrev = 0, katPrev = null, trend = 'none';
       if (prevAssessment && prevAssessment.data[aspect.id]) {
-         const dataPrev = prevAssessment.data[aspect.id] || [];
-         skorPrev = dataPrev.reduce((sum: number, ind: any) => sum + (Number(ind.indicatorScore) || 0), 0);
-         persenPrev = bobot > 0 ? (skorPrev / bobot) * 100 : 0;
-         katPrev = getKategori(persenPrev);
-         if (skorNow > skorPrev) trend = 'up';
-         else if (skorNow < skorPrev) trend = 'down';
-         else trend = 'same';
+        const dataPrev = prevAssessment.data[aspect.id] || [];
+        skorPrev = dataPrev.reduce((sum: number, ind: any) => sum + (Number(ind.indicatorScore) || 0), 0);
+        persenPrev = bobot > 0 ? (skorPrev / bobot) * 100 : 0;
+        katPrev = getKategori(persenPrev);
+        if (skorNow > skorPrev) trend = 'up';
+        else if (skorNow < skorPrev) trend = 'down';
+        else trend = 'same';
       }
 
       return { id: aspect.id, name: aspect.name, bobot, skorNow, persenNow, katNow, skorPrev, persenPrev, katPrev, trend, hasPrev: !!prevAssessment };
@@ -148,7 +210,7 @@ export default function AuditorDashboard() {
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-500 w-full min-w-0">
-      
+
       {/* HEADER & DROPDOWN */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div className="flex items-center space-x-4">
@@ -160,9 +222,9 @@ export default function AuditorDashboard() {
             <p className="text-slate-500 font-medium text-sm">Capaian GCG & Ringkasan Tugas</p>
           </div>
         </div>
-        
+
         <div className="w-full md:w-80 relative">
-          <select 
+          <select
             className="w-full appearance-none bg-white border border-slate-300 rounded-xl py-3 px-4 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer"
             value={selectedAssessmentId}
             onChange={(e) => setSelectedAssessmentId(e.target.value)}
@@ -191,7 +253,7 @@ export default function AuditorDashboard() {
                 <span className="text-5xl font-black text-slate-800 z-10">{activeAssessment.year}</span>
                 <span className={`mt-3 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded border ${activeAssessment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'} z-10`}>Status: {activeAssessment.status}</span>
               </div>
-              
+
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-center items-center text-center relative overflow-hidden">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 z-10">Total Skor Capaian GCG</span>
                 <div className="flex items-baseline gap-2 z-10">
@@ -215,9 +277,9 @@ export default function AuditorDashboard() {
                 <div className="p-3 bg-amber-100 text-amber-600 rounded-xl"><Clock size={20} /></div>
                 <span className="text-3xl font-black text-slate-800">{stats.pendingEvidences}</span>
               </div>
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest z-10 mb-1">Antrean Reviu</h3>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest z-10 mb-1">Dokumen Reviu</h3>
               <p className="text-xs text-slate-500 font-medium z-10 flex-1">Dokumen bukti dari Auditee yang menunggu persetujuan Anda.</p>
-              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Cek Monitoring <ArrowRight size={14}/></a>
+              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Cek Monitoring <ArrowRight size={14} /></a>
             </div>
 
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col relative overflow-hidden group hover:border-blue-300 transition-colors">
@@ -226,9 +288,9 @@ export default function AuditorDashboard() {
                 <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><FileText size={20} /></div>
                 <span className="text-3xl font-black text-slate-800">{stats.openRequests}</span>
               </div>
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest z-10 mb-1">Tagihan Terbuka</h3>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest z-10 mb-1">Permintaan Dokumen</h3>
               <p className="text-xs text-slate-500 font-medium z-10 flex-1">Permintaan dokumen yang belum dipenuhi oleh divisi terkait.</p>
-              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Lihat Tagihan <ArrowRight size={14}/></a>
+              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Lihat Tagihan <ArrowRight size={14} /></a>
             </div>
 
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col relative overflow-hidden group hover:border-blue-300 transition-colors">
@@ -239,7 +301,7 @@ export default function AuditorDashboard() {
               </div>
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest z-10 mb-1">TL Belum Selesai</h3>
               <p className="text-xs text-slate-500 font-medium z-10 flex-1">Tindak Lanjut dari temuan sebelumnya yang statusnya belum Closed.</p>
-              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Pantau TL <ArrowRight size={14}/></a>
+              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Pantau TL <ArrowRight size={14} /></a>
             </div>
           </div>
 
@@ -282,9 +344,9 @@ export default function AuditorDashboard() {
                         <td className="px-4 py-4 text-center font-bold text-slate-700 border-r border-slate-100 bg-blue-50/20">{row.persenNow.toFixed(2)}%</td>
                         <td className="px-4 py-4 text-center border-r border-slate-100 bg-blue-50/20"><span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>{row.katNow.label}</span></td>
                         <td className="px-4 py-4 text-center">
-                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
-                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
-                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16}/> Tetap</div>}
+                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16} /> Naik</div>}
+                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16} /> Turun</div>}
+                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16} /> Tetap</div>}
                           {row.trend === 'none' && <span className="text-slate-300">-</span>}
                         </td>
                       </tr>
@@ -303,8 +365,8 @@ export default function AuditorDashboard() {
                       <td className="px-4 py-5 text-center">
                         {prevAssessment ? (
                           totalSkorNow > totalSkorPrev ? <TrendingUp className="text-emerald-400 mx-auto" /> :
-                          totalSkorNow < totalSkorPrev ? <TrendingDown className="text-red-400 mx-auto" /> :
-                          <Minus className="text-slate-400 mx-auto" />
+                            totalSkorNow < totalSkorPrev ? <TrendingDown className="text-red-400 mx-auto" /> :
+                              <Minus className="text-slate-400 mx-auto" />
                         ) : '-'}
                       </td>
                     </tr>

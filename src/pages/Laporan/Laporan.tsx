@@ -128,7 +128,7 @@ export default function Report() {
       formData.append('file', file);
 
       try {
-        const res = await fetchApi('/assessments/${activeAssessment.id}/upload-report', {
+        const res = await fetchApi(`/assessments/${activeAssessment.id}/upload-report`, {
           method: 'POST', 
           headers: {
             

@@ -24,7 +24,18 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   };
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-  return fetch(url, finalOptions);
+  
+  const response = await fetch(url, finalOptions);
+
+  // Jika response 401 (Unauthorized), dan kita BUKAN sedang melakukan request login (agar tidak loop),
+  // bersihkan local storage dan arahkan kembali ke login.
+  if (response.status === 401 && !url.includes('/login')) {
+    localStorage.removeItem('gcg_active_user');
+    localStorage.removeItem('gcg_token');
+    window.location.href = '/'; 
+  }
+
+  return response;
 }
 
 export async function fetchCsrfCookie() {
