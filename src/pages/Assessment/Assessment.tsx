@@ -95,7 +95,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
 
     try {
       if (isEditing && form.id) {
-        const res = await fetchApi('/assessments/${form.id}', { method: 'PUT', headers, body: JSON.stringify(form) });
+        const res = await fetchApi(`/assessments/${form.id}`, { method: 'PUT', headers, body: JSON.stringify(form) });
         if (res.ok) fetchAssessments();
       } else {
         // Rakit Snapshot dari Master Data (Sama seperti versi API sebelumnya)
@@ -153,7 +153,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
     if (!activeAssessmentId) return;
     if (window.confirm("Anda yakin ingin Kunci & Finalisasi Assessment ini?\n\nPerhatian: Setelah difinalisasi, status akan menjadi 'Selesai' dan seluruh Kertas Kerja akan dikunci permanen (Read-Only) bagi semua anggota tim.")) {
       try {
-        const res = await fetchApi('/assessments/${activeAssessmentId}/data', {
+        const res = await fetchApi(`/assessments/${activeAssessmentId}/data`, {
           method: 'PUT', headers: {  'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Selesai' })
         });
@@ -166,7 +166,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
   const handleInteraction = async () => {
     if (activeAssessment && activeAssessment.status === 'Draft') {
       try {
-        await fetchApi('/assessments/${activeAssessment.id}/data', {
+        await fetchApi(`/assessments/${activeAssessment.id}/data`, {
           method: 'PUT', headers: {  'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Proses' })
         });
@@ -184,7 +184,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
     
     // Push ke backend
     try {
-      await fetchApi('/assessments/${activeAssessment.id}/data', {
+      await fetchApi(`/assessments/${activeAssessment.id}/data`, {
         method: 'PUT', headers: {  'Content-Type': 'application/json' },
         body: JSON.stringify({ data: newData })
       });

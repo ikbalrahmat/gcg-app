@@ -54,7 +54,7 @@ export default function Settings() {
 
     try {
       // Update via API (Menggunakan endpoint User Management)
-      const res = await fetchApi('/users/${user.id}', {
+      const res = await fetchApi(`/users/${user.id}`, {
         method: 'PUT',
         headers: {
           
@@ -112,7 +112,7 @@ export default function Settings() {
         alert('Password berhasil diubah! Gunakan password baru untuk login selanjutnya.');
       } else {
         // 2. Fallback: Jika endpoint /change-password gagal
-        const resFallback = await fetchApi('/users/${user.id}', {
+        const resFallback = await fetchApi(`/users/${user.id}`, {
           method: 'PUT',
           headers: {
             

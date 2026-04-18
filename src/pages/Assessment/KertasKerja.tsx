@@ -133,7 +133,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     
     // 2. Tembak API Laravel untuk Simpan Data Kertas Kerja & Update Status
     try {
-      const response = await fetchApi('/assessments/${assessmentId}/data', {
+      const response = await fetchApi(`/assessments/${assessmentId}/data`, {
         method: 'PUT',
         headers: { 
            
@@ -257,7 +257,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
       const newEvId = `EV-${Date.now()}`;
       
       try {
-        const response = await fetchApi('/evidences/${historyEv.id}/copy', {
+        const response = await fetchApi(`/evidences/${historyEv.id}/copy`, {
           method: 'POST',
           headers: { 
             
