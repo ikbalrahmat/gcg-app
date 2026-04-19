@@ -74,7 +74,7 @@ export default function Sidebar({
           ? [{ id: 'master-data', label: 'Master Data', icon: Database }]
           : []),
 
-        ...(user?.role === 'super_admin' || user?.role === 'admin_spi'
+        ...(user?.role === 'super_admin'
           ? [{ id: 'audit-log', label: 'Audit Trail', icon: Activity }]
           : []),
 
