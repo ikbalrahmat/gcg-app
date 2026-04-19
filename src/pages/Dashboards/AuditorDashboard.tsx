@@ -3,15 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 import { fetchApi } from '../../utils/api';
 import { FileSearch, Clock, AlertCircle, FileText, ArrowRight, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import type { MasterAspect } from '../../data/masterIndicators';
+import { calculateGCGData } from '../../utils/gcgCalculator';
 
-interface AssessmentMeta {
-  id: string;
-  year: string;
-  tb: string;
-  status: string;
-  data: Record<string, any>;
-}
 
 export default function AuditorDashboard() {
   const { user } = useAuth();
@@ -31,33 +24,39 @@ export default function AuditorDashboard() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  const [assessments, setAssessments] = useState<AssessmentMeta[]>([]);
-  const [masterAspects, setMasterAspects] = useState<MasterAspect[]>([]);
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [masterAspects, setMasterAspects] = useState<any[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>('');
-
-
+  
+  const [requests, setRequests] = useState<any[]>([]);
+  const [evidences, setEvidences] = useState<any[]>([]);
+  const [tlRecordsDict, setTlRecordsDict] = useState<any>({});
 
   useEffect(() => {
     const fetchData = async () => {
       const headers = { 'Accept': 'application/json' };
 
       try {
-        // 1. Fetch Master Data & Assessments terlebih dahulu untuk referensi TL filtering
-        const resMaster = await fetchApi('/master-indicators', { headers });
+        // 1. Fetch Master & Assessments
+        const [resMaster, resAss, resReq, resEvi, resTL] = await Promise.all([
+          fetchApi('/master-indicators', { headers }),
+          fetchApi('/assessments', { headers }),
+          fetchApi('/document-requests', { headers }),
+          fetchApi('/evidences', { headers }),
+          fetchApi('/tl-records', { headers })
+        ]);
+
         if (resMaster.ok) {
           const resData = await resMaster.json();
           setMasterAspects(Array.isArray(resData) ? resData : (resData.data || []));
         }
 
-        const resAss = await fetchApi('/assessments', { headers });
-        let fetchedAssessments: any[] = [];
         if (resAss.ok) {
           const resData = await resAss.json();
           const allAss = Array.isArray(resData) ? resData : (resData.data || []);
           if (Array.isArray(allAss)) {
             const filtered = allAss.filter((a: any) => a.status !== 'Draft');
             filtered.sort((a: any, b: any) => Number(b.year) - Number(a.year));
-            fetchedAssessments = filtered;
             setAssessments(filtered);
             if (filtered.length > 0 && !selectedAssessmentId) {
               setSelectedAssessmentId(filtered[0].id);
@@ -65,90 +64,20 @@ export default function AuditorDashboard() {
           }
         }
 
-        // 2. Fetch Document Requests
-        const resReq = await fetchApi('/document-requests', { headers });
-        let openReq = 0;
-        let myParamIds: string[] = []; // Simpan parameterId untuk memfilter Evidence (Dokumen Bukti)
         if (resReq.ok) {
-          const resData = await resReq.json();
-          const reqData = Array.isArray(resData) ? resData : (resData.data || []);
-          if (Array.isArray(reqData)) {
-            const myRequests = isGodMode ? reqData : reqData.filter((r: any) => {
-              const reqBy = (r.requestedBy || '').toLowerCase().trim();
-              return reqBy === myName;
-            });
-            myParamIds = myRequests.map((r: any) => r.parameterId);
-            openReq = myRequests.filter((r: any) => r.status === 'Requested' || r.status === 'Open').length;
-          }
+           const resData = await resReq.json();
+           setRequests(Array.isArray(resData) ? resData : (resData.data || []));
         }
 
-        // 3. Fetch Dokumen Bukti (Mencari status: 'Menunggu Verifikasi')
-        const resEvi = await fetchApi('/evidences', { headers });
-        let pendingEvi = 0;
         if (resEvi.ok) {
-          const resData = await resEvi.json();
-          const eviData = Array.isArray(resData) ? resData : (resData.data || []);
-          if (Array.isArray(eviData)) {
-            const myEvi = isGodMode ? eviData : eviData.filter((e: any) => myParamIds.includes(e.parameterId));
-            pendingEvi = myEvi.filter((e: any) => e.status === 'Menunggu Verifikasi' || e.status === 'Pending').length;
-          }
+           const resData = await resEvi.json();
+           setEvidences(Array.isArray(resData) ? resData : (resData.data || []));
         }
 
-        // 4. Fetch TL Records dan filter sesuai dengan `picAuditor` dari Assessments
-        const resTL = await fetchApi('/tl-records', { headers });
-        let openTL = 0;
         if (resTL.ok) {
-          const resData = await resTL.json();
-          const tlRecordsDict = (resData && !Array.isArray(resData)) ? resData : {};
-
-          if (isGodMode) {
-            let godTaskCount = 0;
-            let godClosedCount = 0;
-            fetchedAssessments.forEach((ass: any) => {
-              if (ass.status !== 'Draft' && ass.data && typeof ass.data === 'object') {
-                Object.entries(ass.data).forEach(([aspectId, indicators]: [string, any]) => {
-                  indicators.forEach((ind: any) => {
-                    ind.parameters.forEach((param: any) => {
-                      param.factors.forEach((factor: any) => {
-                        if (factor.recommendation && factor.dueDate) {
-                          godTaskCount++;
-                          const tId = `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
-                          const tlStatus = tlRecordsDict[tId]?.status;
-                          if (tlStatus === 'Closed' || tlStatus === 'Selesai') godClosedCount++;
-                        }
-                      });
-                    });
-                  });
-                });
-              }
-            });
-            openTL = godTaskCount - godClosedCount;
-          } else {
-            let myTaskCount = 0;
-            let myClosedCount = 0;
-            fetchedAssessments.forEach((ass: any) => {
-              if (ass.status !== 'Draft' && ass.data && typeof ass.data === 'object') {
-                Object.entries(ass.data).forEach(([aspectId, indicators]: [string, any]) => {
-                  indicators.forEach((ind: any) => {
-                    ind.parameters.forEach((param: any) => {
-                      param.factors.forEach((factor: any) => {
-                        if (factor.recommendation && factor.dueDate && (factor.picAuditor || '').toLowerCase().trim() === myName) {
-                          myTaskCount++;
-                          const tId = `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
-                          const tlStatus = tlRecordsDict[tId]?.status;
-                          if (tlStatus === 'Closed' || tlStatus === 'Selesai') myClosedCount++;
-                        }
-                      });
-                    });
-                  });
-                });
-              }
-            });
-            openTL = myTaskCount - myClosedCount;
-          }
+           const resData = await resTL.json();
+           setTlRecordsDict((resData && !Array.isArray(resData)) ? resData : {});
         }
-
-        setStats({ pendingEvidences: pendingEvi, openRequests: openReq, openTLs: openTL });
 
       } catch (error) {
         console.error("Gagal load data", error);
@@ -162,51 +91,64 @@ export default function AuditorDashboard() {
   }, []);
 
   const activeAssessment = assessments.find(a => a.id === selectedAssessmentId);
+
+  // Re-calculate stats when assessment changes
+  useEffect(() => {
+    if (!activeAssessment) {
+      setStats({ pendingEvidences: 0, openRequests: 0, openTLs: 0 });
+      return;
+    }
+
+    // 1. Requests
+    const myRequests = isGodMode ? requests : requests.filter((r: any) => (r.requestedBy || '').toLowerCase().trim() === myName);
+    const myAssReq = myRequests.filter((r: any) => String(r.assessmentId) === String(activeAssessment.id));
+    const openReq = myAssReq.filter((r: any) => r.status === 'Requested' || r.status === 'Open').length;
+
+    // 2. Evidence
+    const myParamIds = myAssReq.map((r: any) => r.parameterId);
+    const pendingEvi = evidences.filter((e: any) => 
+      myParamIds.includes(e.parameterId) && (e.status === 'Menunggu Verifikasi' || e.status === 'Pending')
+    ).length;
+
+    // 3. TL Records
+    let openTL = 0;
+    if (activeAssessment.status !== 'Draft' && activeAssessment.data && typeof activeAssessment.data === 'object') {
+       Object.entries(activeAssessment.data).forEach(([aspectId, indicators]: [string, any]) => {
+         indicators.forEach((ind: any) => {
+           ind.parameters.forEach((param: any) => {
+             param.factors.forEach((factor: any) => {
+               if (factor.recommendation && factor.dueDate) {
+                 if (isGodMode || (factor.picAuditor || '').toLowerCase().trim() === myName) {
+                    const tId = `${activeAssessment.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
+                    const tlStatus = tlRecordsDict[tId]?.status;
+                    if (tlStatus !== 'Closed' && tlStatus !== 'Selesai') openTL++;
+                 }
+               }
+             });
+           });
+         });
+       });
+    }
+
+    setStats({ pendingEvidences: pendingEvi, openRequests: openReq, openTLs: openTL });
+  }, [activeAssessment, requests, evidences, tlRecordsDict, isGodMode, myName]);
   const prevAssessment = useMemo(() => {
     if (!activeAssessment) return null;
     const targetYear = String(Number(activeAssessment.year) - 1);
     return assessments.find(a => a.year === targetYear && a.status !== 'Draft');
   }, [activeAssessment, assessments]);
 
-  const getKategori = (persen: number) => {
-    if (persen >= 85) return { label: 'SANGAT BAIK', color: 'text-emerald-700', bg: 'bg-emerald-100', border: 'border-emerald-200' };
-    if (persen >= 75) return { label: 'BAIK', color: 'text-blue-700', bg: 'bg-blue-100', border: 'border-blue-200' };
-    if (persen >= 60) return { label: 'CUKUP BAIK', color: 'text-amber-700', bg: 'bg-amber-100', border: 'border-amber-200' };
-    return { label: 'KURANG', color: 'text-red-700', bg: 'bg-red-100', border: 'border-red-200' };
-  };
-
-  const comparativeData = useMemo(() => {
-    if (!activeAssessment || masterAspects.length === 0) return [];
-    return masterAspects.map(aspect => {
-      const bobot = Number(aspect.bobot || 0);
-      const dataNow = activeAssessment.data[aspect.id] || [];
-      const skorNow = dataNow.reduce((sum: number, ind: any) => sum + (Number(ind.indicatorScore) || 0), 0);
-      const persenNow = bobot > 0 ? (skorNow / bobot) * 100 : 0;
-      const katNow = getKategori(persenNow);
-
-      let skorPrev = 0, persenPrev = 0, katPrev = null, trend = 'none';
-      if (prevAssessment && prevAssessment.data[aspect.id]) {
-        const dataPrev = prevAssessment.data[aspect.id] || [];
-        skorPrev = dataPrev.reduce((sum: number, ind: any) => sum + (Number(ind.indicatorScore) || 0), 0);
-        persenPrev = bobot > 0 ? (skorPrev / bobot) * 100 : 0;
-        katPrev = getKategori(persenPrev);
-        if (skorNow > skorPrev) trend = 'up';
-        else if (skorNow < skorPrev) trend = 'down';
-        else trend = 'same';
-      }
-
-      return { id: aspect.id, name: aspect.name, bobot, skorNow, persenNow, katNow, skorPrev, persenPrev, katPrev, trend, hasPrev: !!prevAssessment };
-    });
-  }, [activeAssessment, prevAssessment, masterAspects]);
-
-  const totalBobot = comparativeData.reduce((sum, item) => sum + item.bobot, 0);
-  const totalSkorNow = comparativeData.reduce((sum, item) => sum + item.skorNow, 0);
-  const totalPersenNow = totalBobot > 0 ? (totalSkorNow / totalBobot) * 100 : 0;
-  const predikatNow = getKategori(totalPersenNow);
-
-  const totalSkorPrev = comparativeData.reduce((sum, item) => sum + item.skorPrev, 0);
-  const totalPersenPrev = totalBobot > 0 ? (totalSkorPrev / totalBobot) * 100 : 0;
-  const predikatPrev = getKategori(totalPersenPrev);
+  const {
+    mainAspects: comparativeData,
+    modifierAspects,
+    totalBobot,
+    totalSkorNow,
+    totalPersenNow,
+    predikatNow,
+    totalSkorPrev,
+    totalPersenPrev,
+    predikatPrev,
+  } = useMemo(() => calculateGCGData(activeAssessment, prevAssessment, masterAspects), [activeAssessment, prevAssessment, masterAspects]);
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-500 w-full min-w-0">
@@ -332,6 +274,7 @@ export default function AuditorDashboard() {
                     </tr>
                   </thead>
                   <tbody className="text-sm">
+                    {/* ASPEK UTAMA */}
                     {comparativeData.map((row, idx) => (
                       <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                         <td className="px-4 py-4 text-center font-bold text-slate-400 border-r border-slate-100">{idx + 1}</td>
@@ -342,11 +285,45 @@ export default function AuditorDashboard() {
                         <td className="px-4 py-4 text-center border-r border-slate-100">{row.hasPrev && row.katPrev ? <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>{row.katPrev.label}</span> : '-'}</td>
                         <td className="px-4 py-4 text-center font-black text-blue-600 border-r border-slate-100 bg-blue-50/20">{row.skorNow.toFixed(3)}</td>
                         <td className="px-4 py-4 text-center font-bold text-slate-700 border-r border-slate-100 bg-blue-50/20">{row.persenNow.toFixed(2)}%</td>
-                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-blue-50/20"><span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>{row.katNow.label}</span></td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-blue-50/20">{row.katNow && <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>{row.katNow.label}</span>}</td>
                         <td className="px-4 py-4 text-center">
                           {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16} /> Naik</div>}
                           {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16} /> Turun</div>}
                           {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16} /> Tetap</div>}
+                          {row.trend === 'none' && <span className="text-slate-300">-</span>}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* ASPEK PENYESUAI / MODIFIER */}
+                    {modifierAspects.map((row, idx) => (
+                      <tr key={row.id} className={`border-b border-orange-100 transition-colors ${row.isBonusActive ? 'bg-orange-50/30' : 'bg-slate-50 opacity-50'}`}>
+                        <td className="px-4 py-4 text-center font-black text-orange-400 border-r border-slate-100">{comparativeData.length + idx + 1}</td>
+                        <td className="px-4 py-4 font-bold text-orange-700 border-r border-slate-100 flex items-center justify-between">
+                            <span>{row.name}</span>
+
+                        </td>
+                        <td className="px-4 py-4 text-center font-semibold text-orange-600 border-r border-slate-100">&plusmn; {row.bobot.toFixed(3)}</td>
+                        <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? row.skorPrev.toFixed(3) : '-'}</td>
+                        <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? `${row.persenPrev.toFixed(2)}%` : '-'}</td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100">
+                          {row.hasPrev && row.katPrev ? (
+                            <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>
+                              {row.katPrev.label}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className={`px-4 py-4 text-center font-black border-r border-slate-100 bg-orange-50/50 ${row.skorNow > 0 ? 'text-emerald-600' : row.skorNow < 0 ? 'text-rose-600' : 'text-slate-400'}`}>{row.skorNow > 0 ? '+' : ''}{row.skorNow.toFixed(3)}</td>
+                        <td className="px-4 py-4 text-center font-bold text-orange-600 border-r border-slate-100 bg-orange-50/50">{row.persenNow.toFixed(2)}%</td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-orange-50/50">
+                          {row.katNow && <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>
+                            {row.katNow.label}
+                          </span>}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
+                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
+                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16}/> Tetap</div>}
                           {row.trend === 'none' && <span className="text-slate-300">-</span>}
                         </td>
                       </tr>

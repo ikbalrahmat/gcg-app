@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchApi } from '../../utils/api';
 import { AlertCircle, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { MasterAspect } from '../../data/masterIndicators';
+import { calculateGCGData } from '../../utils/gcgCalculator';
 
 interface AssessmentMeta {
   id: string;
@@ -65,67 +66,17 @@ export default function Dashboard() {
     return assessments.find(a => a.year === targetYear && a.status !== 'Draft');
   }, [activeAssessment, assessments]);
 
-  // LOGIKA PENENTUAN KATEGORI (OTOMATIS)
-  const getKategori = (persen: number) => {
-    if (persen >= 85) return { label: 'SANGAT BAIK', color: 'text-emerald-700', bg: 'bg-emerald-100', border: 'border-emerald-200' };
-    if (persen >= 75) return { label: 'BAIK', color: 'text-blue-700', bg: 'bg-blue-100', border: 'border-blue-200' };
-    if (persen >= 60) return { label: 'CUKUP BAIK', color: 'text-amber-700', bg: 'bg-amber-100', border: 'border-amber-200' };
-    return { label: 'KURANG', color: 'text-red-700', bg: 'bg-red-100', border: 'border-red-200' };
-  };
-
-  // KALKULASI DATA TABEL KOMPARASI
-  const comparativeData = useMemo(() => {
-    if (!activeAssessment || masterAspects.length === 0) return [];
-
-    return masterAspects.map(aspect => {
-      const bobot = Number(aspect.bobot || 0);
-
-      // Data Tahun Terpilih (Current)
-      const dataNow = activeAssessment.data[aspect.id] || [];
-      const skorNow = dataNow.reduce((sum: number, ind: any) => sum + (Number(ind.indicatorScore) || 0), 0);
-      const persenNow = bobot > 0 ? (skorNow / bobot) * 100 : 0;
-      const katNow = getKategori(persenNow);
-
-      // Data Tahun Sebelumnya (Previous)
-      let skorPrev = 0;
-      let persenPrev = 0;
-      let katPrev = null;
-      if (prevAssessment && prevAssessment.data[aspect.id]) {
-         const dataPrev = prevAssessment.data[aspect.id] || [];
-         skorPrev = dataPrev.reduce((sum: number, ind: any) => sum + (Number(ind.indicatorScore) || 0), 0);
-         persenPrev = bobot > 0 ? (skorPrev / bobot) * 100 : 0;
-         katPrev = getKategori(persenPrev);
-      }
-
-      // Tren
-      let trend = 'none';
-      if (prevAssessment) {
-        if (skorNow > skorPrev) trend = 'up';
-        else if (skorNow < skorPrev) trend = 'down';
-        else trend = 'same';
-      }
-
-      return {
-        id: aspect.id,
-        name: aspect.name,
-        bobot,
-        skorNow, persenNow, katNow,
-        skorPrev, persenPrev, katPrev,
-        trend,
-        hasPrev: !!prevAssessment
-      };
-    });
-  }, [activeAssessment, prevAssessment, masterAspects]);
-
-  // TOTAL CAPAIAN SUMMARY
-  const totalBobot = comparativeData.reduce((sum, item) => sum + item.bobot, 0);
-  const totalSkorNow = comparativeData.reduce((sum, item) => sum + item.skorNow, 0);
-  const totalPersenNow = totalBobot > 0 ? (totalSkorNow / totalBobot) * 100 : 0;
-  const predikatNow = getKategori(totalPersenNow);
-
-  const totalSkorPrev = comparativeData.reduce((sum, item) => sum + item.skorPrev, 0);
-  const totalPersenPrev = totalBobot > 0 ? (totalSkorPrev / totalBobot) * 100 : 0;
-  const predikatPrev = getKategori(totalPersenPrev);
+  const {
+    mainAspects: comparativeData,
+    modifierAspects,
+    totalBobot,
+    totalSkorNow,
+    totalPersenNow,
+    predikatNow,
+    totalSkorPrev,
+    totalPersenPrev,
+    predikatPrev,
+  } = useMemo(() => calculateGCGData(activeAssessment, prevAssessment, masterAspects), [activeAssessment, prevAssessment, masterAspects]);
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-500 w-full min-w-0">
@@ -237,43 +188,78 @@ export default function Dashboard() {
                     <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-blue-50/50">Kategori</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm">
-                  {comparativeData.map((row, idx) => (
-                    <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-4 text-center font-bold text-slate-400 border-r border-slate-100">{idx + 1}</td>
-                      <td className="px-4 py-4 font-bold text-slate-700 border-r border-slate-100">{row.name}</td>
-                      <td className="px-4 py-4 text-center font-semibold text-slate-600 border-r border-slate-100">{row.bobot.toFixed(3)}</td>
-                      
-                      {/* Data Tahun Sebelumnya */}
-                      <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? row.skorPrev.toFixed(3) : '-'}</td>
-                      <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? `${row.persenPrev.toFixed(2)}%` : '-'}</td>
-                      <td className="px-4 py-4 text-center border-r border-slate-100">
-                        {row.hasPrev && row.katPrev ? (
-                          <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>
-                            {row.katPrev.label}
-                          </span>
-                        ) : '-'}
-                      </td>
+                  <tbody className="text-sm">
+                    {/* ASPEK UTAMA */}
+                    {comparativeData.map((row, idx) => (
+                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-4 text-center font-bold text-slate-400 border-r border-slate-100">{idx + 1}</td>
+                        <td className="px-4 py-4 font-bold text-slate-700 border-r border-slate-100">{row.name}</td>
+                        <td className="px-4 py-4 text-center font-semibold text-slate-600 border-r border-slate-100">{row.bobot.toFixed(3)}</td>
+                        
+                        {/* Data Tahun Sebelumnya */}
+                        <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? row.skorPrev.toFixed(3) : '-'}</td>
+                        <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? `${row.persenPrev.toFixed(2)}%` : '-'}</td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100">
+                          {row.hasPrev && row.katPrev ? (
+                            <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>
+                              {row.katPrev.label}
+                            </span>
+                          ) : '-'}
+                        </td>
 
-                      {/* Data Tahun Terpilih */}
-                      <td className="px-4 py-4 text-center font-black text-blue-600 border-r border-slate-100 bg-blue-50/20">{row.skorNow.toFixed(3)}</td>
-                      <td className="px-4 py-4 text-center font-bold text-slate-700 border-r border-slate-100 bg-blue-50/20">{row.persenNow.toFixed(2)}%</td>
-                      <td className="px-4 py-4 text-center border-r border-slate-100 bg-blue-50/20">
-                        <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>
-                          {row.katNow.label}
-                        </span>
-                      </td>
+                        {/* Data Tahun Terpilih */}
+                        <td className="px-4 py-4 text-center font-black text-blue-600 border-r border-slate-100 bg-blue-50/20">{row.skorNow.toFixed(3)}</td>
+                        <td className="px-4 py-4 text-center font-bold text-slate-700 border-r border-slate-100 bg-blue-50/20">{row.persenNow.toFixed(2)}%</td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-blue-50/20">
+                          {row.katNow && <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>
+                            {row.katNow.label}
+                          </span>}
+                        </td>
 
-                      {/* Tren */}
-                      <td className="px-4 py-4 text-center">
-                        {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
-                        {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
-                        {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16}/> Tetap</div>}
-                        {row.trend === 'none' && <span className="text-slate-300">-</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                        {/* Tren */}
+                        <td className="px-4 py-4 text-center">
+                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
+                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
+                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16}/> Tetap</div>}
+                          {row.trend === 'none' && <span className="text-slate-300">-</span>}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* ASPEK PENYESUAI / MODIFIER */}
+                    {modifierAspects.map((row, idx) => (
+                      <tr key={row.id} className={`border-b border-orange-100 transition-colors ${row.isBonusActive ? 'bg-orange-50/30' : 'bg-slate-50 opacity-50'}`}>
+                        <td className="px-4 py-4 text-center font-black text-orange-400 border-r border-slate-100">{comparativeData.length + idx + 1}</td>
+                        <td className="px-4 py-4 font-bold text-orange-700 border-r border-slate-100 flex items-center justify-between">
+                            <span>{row.name}</span>
+
+                        </td>
+                        <td className="px-4 py-4 text-center font-semibold text-orange-600 border-r border-slate-100">&plusmn; {row.bobot.toFixed(3)}</td>
+                        <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? row.skorPrev.toFixed(3) : '-'}</td>
+                        <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? `${row.persenPrev.toFixed(2)}%` : '-'}</td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100">
+                          {row.hasPrev && row.katPrev ? (
+                            <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>
+                              {row.katPrev.label}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className={`px-4 py-4 text-center font-black border-r border-slate-100 bg-orange-50/50 ${row.skorNow > 0 ? 'text-emerald-600' : row.skorNow < 0 ? 'text-rose-600' : 'text-slate-400'}`}>{row.skorNow > 0 ? '+' : ''}{row.skorNow.toFixed(3)}</td>
+                        <td className="px-4 py-4 text-center font-bold text-orange-600 border-r border-slate-100 bg-orange-50/50">{row.persenNow.toFixed(2)}%</td>
+                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-orange-50/50">
+                          {row.katNow && <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>
+                            {row.katNow.label}
+                          </span>}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
+                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
+                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16}/> Tetap</div>}
+                          {row.trend === 'none' && <span className="text-slate-300">-</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 <tfoot className="bg-slate-900 text-white font-bold uppercase text-[11px] tracking-widest">
                   <tr>
                     <td colSpan={2} className="px-4 py-5 text-right border-r border-slate-700">Skor Keseluruhan GCG</td>

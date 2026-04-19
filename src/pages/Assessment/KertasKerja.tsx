@@ -103,6 +103,11 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
       totalAspectScore += totalIndicatorScore;
       return { ...indicator, parameters: updatedParameters, indicatorScore: totalIndicatorScore, aspectScore: 0 };
     });
+    // TECHNICAL NOTE:
+    // We duplicate the totalAspectScore into every indicator within this aspect.
+    // This allows the frontend (Report/Dashboards) to read the final aspect score 
+    // from any indicator node, while the UI in KertasKerja uses this to handle 
+    // row-spanning seamlessly across the complex table structure.
     return updatedIndicators.map(ind => ({ ...ind, aspectScore: totalAspectScore }));
   };
 
@@ -161,8 +166,8 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
       const file = e.target.files[0];
       if (file.size > 10 * 1024 * 1024) return alert(`Gagal: Ukuran file terlalu besar! Maksimal 10MB.`);
       
-      const { iIdx, pIdx } = modalConfig;
-      if (iIdx !== null && pIdx !== null) {
+      const { iIdx, pIdx, fIdx } = modalConfig;
+      if (iIdx !== null && pIdx !== null && fIdx !== null) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('id', `EV-${Date.now()}`);
@@ -171,6 +176,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
         formData.append('aspectId', aspect.id);
         formData.append('indicatorId', data[iIdx].id);
         formData.append('parameterId', data[iIdx].parameters[pIdx].id);
+        formData.append('factorId', data[iIdx].parameters[pIdx].factors[fIdx].id);
         formData.append('divisi', 'Auditor (Internal)');
         formData.append('uploadDate', new Date().toISOString().split('T')[0]);
 
@@ -295,9 +301,10 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
 
   const activeIndicator = modalConfig.iIdx !== null ? data[modalConfig.iIdx] : null;
   const activeParameter = modalConfig.pIdx !== null && activeIndicator ? activeIndicator.parameters[modalConfig.pIdx] : null;
-  const activeEvidences = activeParameter ? dbEvidences.filter(e => e.assessmentId === assessmentId && e.parameterId === activeParameter.id) : [];
+  const activeFactor = modalConfig.fIdx !== null && activeParameter ? activeParameter.factors[modalConfig.fIdx] : null;
+  const activeEvidences = activeFactor && activeParameter ? dbEvidences.filter(e => e.assessmentId === assessmentId && (e.factorId === activeFactor.id || (e.parameterId === activeParameter.id && !e.factorId))) : [];
   const activeRequests = activeParameter ? dbRequests.filter(r => r.assessmentId === assessmentId && r.parameterId === activeParameter.id) : [];
-  const historyEvidences = activeParameter ? dbEvidences.filter(e => e.parameterId === activeParameter.id && e.assessmentId !== assessmentId && e.status === 'Verified') : [];
+  const historyEvidences = activeFactor && activeParameter ? dbEvidences.filter(e => e.assessmentId !== assessmentId && e.status === 'Verified' && (e.factorId === activeFactor.id || (e.parameterId === activeParameter.id && !e.factorId))) : [];
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-300 w-full">
@@ -376,7 +383,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                   return factors.map((factor: FactorData, fIdx: number) => {
                     const isFirstInIndicator = pIdx === 0 && fIdx === 0;
                     const isFirstInParameter = fIdx === 0;
-                    const factorEvidences = dbEvidences?.filter(e => e.assessmentId === assessmentId && e.parameterId === param.id) || [];
+                    const factorEvidences = dbEvidences?.filter(e => e.assessmentId === assessmentId && (e.factorId === factor.id || (e.parameterId === param.id && !e.factorId))) || [];
 
                     let prevFactor: any = null;
                     let prevTaskStatus = 'Belum Ada Info';

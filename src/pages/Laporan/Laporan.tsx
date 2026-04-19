@@ -3,6 +3,7 @@ import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Upload, Download, FileText, X, AlertCircle, CheckCircle2, Target, Eye, LayoutList } from 'lucide-react';
 import type { MasterAspect } from '../../data/masterIndicators';
+import { calculateGCGData } from '../../utils/gcgCalculator';
 
 interface AssessmentMeta {
   id: string;
@@ -12,16 +13,6 @@ interface AssessmentMeta {
   data: Record<string, any>;
   finalReportUrl?: string;
   finalReportName?: string;
-}
-
-interface TableData {
-  id: string;
-  name: string;
-  bobot: number;
-  skor: number;
-  persen: number;
-  kategori: string;
-  kategoriColor: string;
 }
 
 export default function Report() {
@@ -71,46 +62,14 @@ export default function Report() {
 
   const activeAssessment = assessments.find(a => a.id === selectedAssessmentId);
 
-  const getKategori = (persen: number) => {
-    if (persen >= 85) return { label: 'Sangat Baik', color: 'text-emerald-700 bg-emerald-100' };
-    if (persen >= 75) return { label: 'Baik', color: 'text-blue-700 bg-blue-100' };
-    if (persen >= 60) return { label: 'Cukup Baik', color: 'text-amber-700 bg-amber-100' };
-    return { label: 'Kurang', color: 'text-red-700 bg-red-100' };
-  };
-
-  // KALKULASI TABEL REKAPITULASI
-  const tableData: TableData[] = useMemo(() => {
-    if (!activeAssessment || !activeAssessment.data || masterAspects.length === 0) return [];
-
-    return masterAspects.map(aspect => {
-      const aspectData = activeAssessment.data[aspect.id] || [];
-      let totalSkor = 0;
-      
-      aspectData.forEach((ind: any) => {
-        totalSkor += (Number(ind.indicatorScore) || 0);
-      });
-
-      const bobot = Number(aspect.bobot || 0);
-      const skor = Number(totalSkor.toFixed(3));
-      const persen = bobot > 0 ? (skor / bobot) * 100 : 0;
-      const kategori = getKategori(persen);
-
-      return {
-        id: aspect.id,
-        name: aspect.name,
-        bobot,
-        skor,
-        persen: Number(persen.toFixed(2)),
-        kategori: kategori.label,
-        kategoriColor: kategori.color
-      };
-    });
-  }, [activeAssessment, masterAspects]);
-
-  const totalBobot = tableData.reduce((sum, item) => sum + item.bobot, 0).toFixed(3);
-  const totalSkor = tableData.reduce((sum, item) => sum + item.skor, 0).toFixed(3);
-  const totalCapaianPersen = Number(totalBobot) > 0 ? ((Number(totalSkor) / Number(totalBobot)) * 100).toFixed(2) : "0.00";
-  const totalKategori = getKategori(Number(totalCapaianPersen));
+  const {
+    mainAspects: tableData,
+    modifierAspects,
+    totalBobot,
+    totalSkorNow: totalSkor,
+    totalPersenNow: totalCapaianPersen,
+    predikatNow: totalKategori
+  } = useMemo(() => calculateGCGData(activeAssessment, null, masterAspects), [activeAssessment, masterAspects]);
 
   // Fungsi Upload Laporan Final Menggunakan FormData
   const handleUploadReport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,17 +235,38 @@ export default function Report() {
                   </tr>
                 </thead>
                 <tbody className="text-slate-700 text-[12px]">
+                  {/* ASPEK UTAMA */}
                   {tableData.map((row, idx) => (
                     <tr key={row.id} className="border-b border-slate-50 hover:bg-indigo-50/30 transition-colors group">
                       <td className="px-6 py-4 text-center font-bold text-slate-400 border-r border-slate-50">{idx + 1}</td>
                       <td className="px-6 py-4 font-bold text-slate-800 border-r border-slate-50 group-hover:text-indigo-600 transition-colors">{row.name}</td>
                       <td className="px-6 py-4 text-center font-bold text-slate-500 border-r border-slate-50">{row.bobot.toFixed(3)}</td>
-                      <td className="px-6 py-4 text-center font-black text-indigo-700 bg-indigo-50/50 border-r border-slate-50">{row.skor.toFixed(3)}</td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-700 border-r border-slate-50">{row.persen}%</td>
+                      <td className="px-6 py-4 text-center font-black text-indigo-700 bg-indigo-50/50 border-r border-slate-50">{row.skorNow.toFixed(3)}</td>
+                      <td className="px-6 py-4 text-center font-bold text-slate-700 border-r border-slate-50">{row.persenNow.toFixed(2)}%</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/50 shadow-sm ${row.kategoriColor}`}>
-                          {row.kategori}
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/50 shadow-sm ${row.katNow?.color} ${row.katNow?.bg}`}>
+                          {row.katNow?.label}
                         </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {/* ASPEK PENYESUAI */}
+                  {modifierAspects.map((row, idx) => (
+                    <tr key={row.id} className={`border-b transition-colors group ${row.isBonusActive ? 'bg-orange-50/20' : 'bg-slate-50 opacity-60'}`}>
+                      <td className="px-6 py-4 text-center font-bold text-orange-400 border-r border-slate-50">{tableData.length + idx + 1}</td>
+                      <td className="px-6 py-4 font-bold text-orange-700 border-r border-slate-50 flex items-center justify-between">
+                          <span>{row.name}</span>
+
+                      </td>
+                      <td className="px-6 py-4 text-center font-bold text-orange-500 border-r border-slate-50">&plusmn; {row.bobot.toFixed(3)}</td>
+                      <td className={`px-6 py-4 text-center font-black bg-orange-50/40 border-r border-slate-50 ${row.skorNow > 0 ? 'text-emerald-600' : row.skorNow < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        {row.skorNow > 0 ? '+' : ''}{row.skorNow.toFixed(3)}
+                      </td>
+                      <td className="px-6 py-4 text-center font-bold text-orange-500 border-r border-slate-50 bg-orange-50/40">{row.persenNow.toFixed(2)}%</td>
+                      <td className="px-6 py-4 text-center">
+                        {row.katNow && <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/50 shadow-sm ${row.katNow.color} ${row.katNow.bg}`}>
+                          {row.katNow.label}
+                        </span>}
                       </td>
                     </tr>
                   ))}
@@ -294,11 +274,11 @@ export default function Report() {
                 <tfoot className="bg-slate-900 text-white font-black uppercase text-[11px] tracking-widest">
                   <tr>
                     <td colSpan={2} className="px-6 py-5 text-right border-r border-white/10">Skor Keseluruhan GCG</td>
-                    <td className="px-6 py-5 text-center text-indigo-200 border-r border-white/10 text-sm">{totalBobot}</td>
-                    <td className="px-6 py-5 text-center text-indigo-400 text-lg border-r border-white/10">{totalSkor}</td>
-                    <td className="px-6 py-5 text-center text-emerald-400 text-lg border-r border-white/10">{totalCapaianPersen}%</td>
+                    <td className="px-6 py-5 text-center text-indigo-200 border-r border-white/10 text-sm">{totalBobot.toFixed(3)}</td>
+                    <td className="px-6 py-5 text-center text-indigo-400 text-lg border-r border-white/10">{totalSkor.toFixed(3)}</td>
+                    <td className="px-6 py-5 text-center text-emerald-400 text-lg border-r border-white/10">{totalCapaianPersen.toFixed(2)}%</td>
                     <td className="px-6 py-5 text-center">
-                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black ${totalKategori.color}`}>
+                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black border border-white/20 shadow-inner ${totalKategori.color} ${totalKategori.bg}`}>
                         {totalKategori.label}
                       </span>
                     </td>

@@ -22,6 +22,7 @@ export interface EvidenceFile {
   aspectId: string;
   indicatorId: string;
   parameterId: string;
+  factorId?: string;
   fileName: string;
   divisi: string;
   uploadDate: string;

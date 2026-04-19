@@ -103,7 +103,7 @@ const MasterDataManager: React.FC = () => {
     if (!editState.data.name) return showNotification('error', 'Nama Aspek harus diisi');
     const newData = [...masterData];
     const isModifier = String(editState.data.is_modifier) === 'true';
-    const finalBobot = isModifier ? 0 : (Number(editState.data.bobot) || 0);
+    const finalBobot = Number(editState.data.bobot) || 0;
 
     if (editState.aspectId) {
       const idx = newData.findIndex((a) => a.id === editState.aspectId);
@@ -446,13 +446,9 @@ const MasterDataManager: React.FC = () => {
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 group-focus-within:text-violet-600 transition-colors">Bobot Penilaian (Cth: 7.000 atau -5.000)</label>
                   <input 
                     type="text" 
-                    disabled={editState.mode === 'aspect' && String(editState.data.is_modifier) === 'true'}
-                    className={`w-full px-4 py-3.5 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-600/10 outline-none font-black transition-all text-lg
-                      ${(editState.mode === 'aspect' && String(editState.data.is_modifier) === 'true') 
-                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                        : 'bg-slate-50 focus:bg-white focus:border-violet-600 text-violet-700'}`} 
+                    className="w-full px-4 py-3.5 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-violet-600/10 outline-none font-black transition-all text-lg bg-slate-50 focus:bg-white focus:border-violet-600 text-violet-700"
                     placeholder="0.000"
-                    value={(editState.mode === 'aspect' && String(editState.data.is_modifier) === 'true') ? '0' : (editState.data.bobot !== undefined ? editState.data.bobot : '')} 
+                    value={editState.data.bobot !== undefined ? editState.data.bobot : ''} 
                     onChange={(e) => {
                       const val = e.target.value.replace(',', '.');
                       // Valuasi memperbolehkan karakter minus sendirian sebelum angka
@@ -461,9 +457,6 @@ const MasterDataManager: React.FC = () => {
                       }
                     }} 
                   />
-                  {editState.mode === 'aspect' && String(editState.data.is_modifier) === 'true' && (
-                    <p className="text-[10px] text-orange-500 font-bold mt-2">⚠️ Aspek Penyesuai tidak memiliki bobot dasar. Nilai diatur di tingkat Indikator.</p>
-                  )}
                 </div>
               )}
 
