@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
-import { Activity, Search, ShieldAlert, CheckCircle2, XCircle, LogOut, Edit, Trash2, PlusCircle } from 'lucide-react';
-import { Activity, Search, ShieldAlert, CheckCircle2, XCircle, LogOut, Edit, Trash2, PlusCircle } from 'lucide-react';
+import { Activity, Search, ShieldAlert, CheckCircle2, XCircle, LogOut, Edit, Trash2, PlusCircle, Download, Calendar, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Download, Calendar, X } from 'lucide-react'; // 🆕 Import New Icons
 
 export default function ActivityLog() {
   const { user } = useAuth();
