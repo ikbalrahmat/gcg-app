@@ -211,15 +211,27 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     }
   };
 
+  const handleDeleteRequest = async (reqId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isReadOnly) return;
+    if (window.confirm("Yakin ingin membatalkan Tagihan Dokumen untuk divisi ini?")) {
+      await fetchApi(`/document-requests/${reqId}`, { method: 'DELETE' });
+      fetchData();
+      if(onInteraction) onInteraction();
+    }
+  };
+
   const handleRequestDocument = async () => {
     if (isReadOnly) return;
     if (!requestDivisi) return alert("Pilih divisi auditee terlebih dahulu!");
-    const { iIdx, pIdx } = modalConfig;
-    if (iIdx !== null && pIdx !== null) {
+    const { iIdx, pIdx, fIdx } = modalConfig;
+    if (iIdx !== null && pIdx !== null && fIdx !== null) {
       const parameter = data[iIdx].parameters[pIdx];
+      const targetFactorId = parameter.factors[fIdx].id;
+      
       const payload = {
         id: `REQ-${Date.now()}`, assessmentId, assessmentYear, aspectId: aspect.id, indicatorId: data[iIdx].id, 
-        parameterId: parameter.id, parameterName: parameter.parameterName, targetDivisi: requestDivisi, 
+        parameterId: parameter.id, factorId: targetFactorId, parameterName: parameter.parameterName, targetDivisi: requestDivisi, 
         requestedBy: user?.name || 'Auditor', requestDate: new Date().toLocaleDateString('id-ID'), note: requestNote
       };
       
@@ -408,14 +420,14 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                           <React.Fragment>
                             <td rowSpan={totalRowsInIndicator} className="px-4 py-4 border-r border-gray-200 text-center text-gray-500 bg-white">{indicator.id}</td>
                             <td rowSpan={totalRowsInIndicator} className="px-4 py-4 border-r border-gray-200 font-bold text-gray-900 bg-white">{indicator.indicatorName}</td>
-                            <td rowSpan={totalRowsInIndicator} className="px-4 py-4 border-r border-gray-200 text-center font-bold text-amber-600 bg-white">{indicator.bobot || 0}</td>
+                            <td rowSpan={totalRowsInIndicator} className="px-4 py-4 border-r border-gray-200 text-center font-bold text-amber-600 bg-white">{Number(indicator.bobot || 0).toFixed(3)}</td>
                           </React.Fragment>
                         )}
                         {isFirstInParameter && (
                           <React.Fragment>
                             <td rowSpan={totalRowsInParam} className="px-4 py-4 border-r border-gray-200 text-center text-gray-500 bg-white">{param.id}</td>
                             <td rowSpan={totalRowsInParam} className="px-4 py-4 border-r border-gray-200 font-semibold text-gray-800 bg-white">{param.parameterName}</td>
-                            <td rowSpan={totalRowsInParam} className="px-4 py-4 border-r border-gray-200 text-center font-bold text-blue-600 bg-white">{param.bobot || 0}</td>
+                            <td rowSpan={totalRowsInParam} className="px-4 py-4 border-r border-gray-200 text-center font-bold text-blue-600 bg-white">{Number(param.bobot || 0).toFixed(3)}</td>
                           </React.Fragment>
                         )}
                         
@@ -731,7 +743,14 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                               <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
                                 <BellRing size={16} className="text-amber-500"/> <span>Tagihan: {req.targetDivisi}</span>
                               </div>
-                              <span className="text-[9px] font-black uppercase bg-amber-100 text-amber-700 px-2 py-1 rounded">Belum Diunggah</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[9px] font-black uppercase bg-amber-100 text-amber-700 px-2 py-1 rounded">Belum Diunggah</span>
+                                {!isReadOnly && (
+                                  <button onClick={(e) => handleDeleteRequest(req.id, e)} className="p-1.5 bg-red-50 text-red-500 hover:text-white hover:bg-red-500 rounded-md transition-colors" title="Batal Tagih">
+                                    <Trash2 size={13} strokeWidth={2.5}/>
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
 

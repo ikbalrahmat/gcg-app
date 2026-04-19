@@ -67,6 +67,7 @@ export default function File(_props: FileProps) {
       formData.append('aspectId', req.aspectId);
       formData.append('indicatorId', req.indicatorId);
       formData.append('parameterId', req.parameterId);
+      if (req.factorId) formData.append('factorId', req.factorId);
       formData.append('divisi', user?.divisi || 'Auditee');
       formData.append('uploadDate', new Date().toLocaleDateString('id-ID'));
 

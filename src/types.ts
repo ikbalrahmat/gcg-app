@@ -37,6 +37,7 @@ export interface DocumentRequest {
   aspectId: string;
   indicatorId: string;
   parameterId: string;
+  factorId?: string;
   parameterName: string;
   targetDivisi: string; 
   requestedBy: string;  
