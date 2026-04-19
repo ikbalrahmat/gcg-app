@@ -98,20 +98,23 @@ export default function Monitoring() {
                 ind.parameters.forEach((param: any) => {
                   param.factors.forEach((factor: any) => {
                     if (factor.recommendation && factor.picDivisi && factor.dueDate) {
-                      extractedTasks.push({
-                        id: `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`,
-                        assessmentId: ass.id, 
-                        assessmentYear: ass.year, 
-                        aspek: aspectsMap[aspectId] || `Aspek ${aspectId}`,
-                        parameterName: `${param.id} - ${param.parameterName}`, 
-                        recommendation: factor.recommendation,
-                        picDivisi: factor.picDivisi, 
-                        dueDate: factor.dueDate, 
-                        picAuditor: factor.picAuditor || 'Sistem',
-                        aspectId: aspectId,
-                        indicatorId: ind.id,
-                        parameterId: param.id,
-                        factorId: factor.id
+                      const divTargets = factor.picDivisi.split(',').map((d: string) => d.trim()).filter((d: string) => d);
+                      divTargets.forEach((divName: string) => {
+                        extractedTasks.push({
+                          id: `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}_${divName.replace(/[\s&]/g,'')}`,
+                          assessmentId: ass.id, 
+                          assessmentYear: ass.year, 
+                          aspek: aspectsMap[aspectId] || `Aspek ${aspectId}`,
+                          parameterName: `${param.id} - ${param.parameterName}`, 
+                          recommendation: factor.recommendation,
+                          picDivisi: divName, 
+                          dueDate: factor.dueDate, 
+                          picAuditor: factor.picAuditor || 'Sistem',
+                          aspectId: aspectId,
+                          indicatorId: ind.id,
+                          parameterId: param.id,
+                          factorId: factor.id
+                        });
                       });
                     }
                   });

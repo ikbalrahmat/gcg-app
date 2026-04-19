@@ -618,16 +618,33 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                          </div>
                          <div className="grid grid-cols-2 gap-4">
                            <div>
-                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Divisi PIC</label>
-                             <select 
-                               disabled={isReadOnly} 
-                               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-gray-700 cursor-pointer shadow-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed" 
-                               value={modalConfig.data.picDivisi || ''} 
-                               onChange={(e) => setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: e.target.value } })}
-                             >
-                               <option value="">-- Pilih Divisi --</option>
-                               {divisions.map(div => <option key={div} value={div}>{div}</option>)}
-                             </select>
+                             <div className="flex items-center justify-between mb-2">
+                               <label className="block text-xs font-bold text-gray-500 uppercase">Divisi PIC <span className="text-[9px] lowercase text-gray-400 font-normal ml-1">(Bisa &gt; 1)</span></label>
+                               {!isReadOnly && (
+                                 <div className="flex gap-2">
+                                   <button type="button" onClick={() => setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: divisions.join(', ') } })} className="text-[9px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded">Semua</button>
+                                   <button type="button" onClick={() => setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: '' } })} className="text-[9px] font-bold text-gray-500 hover:text-gray-800 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Reset</button>
+                                 </div>
+                               )}
+                             </div>
+                             <div className="border border-gray-300 rounded-lg bg-white shadow-sm max-h-40 overflow-y-auto custom-scrollbar p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
+                               {divisions.map(div => {
+                                 const selectedArr = modalConfig.data.picDivisi ? modalConfig.data.picDivisi.split(', ') : [];
+                                 const isChecked = selectedArr.includes(div);
+                                 return (
+                                   <label key={div} className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${isChecked ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-gray-50 text-gray-600 font-medium text-[11px]'} ${isReadOnly ? 'pointer-events-none opacity-60' : ''}`}>
+                                     <input type="checkbox" className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked={isChecked} onChange={() => {
+                                       if (isReadOnly) return;
+                                       let newArr = [...selectedArr];
+                                       if (isChecked) newArr = newArr.filter(d => d !== div);
+                                       else newArr.push(div);
+                                       setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: newArr.join(', ') } });
+                                     }} />
+                                     <span className="text-[11px] truncate whitespace-normal leading-tight">{div}</span>
+                                   </label>
+                                 );
+                               })}
+                             </div>
                            </div>
                            <div>
                              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Deadline</label>
