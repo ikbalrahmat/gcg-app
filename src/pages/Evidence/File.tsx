@@ -16,9 +16,9 @@ export default function File(_props: FileProps) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [viewingDocument, setViewingDocument] = useState<EvidenceFile | null>(null);
   
-  // 🆕 STATE MANDIRI (Narik dari Database)
   const [dbEvidences, setDbEvidences] = useState<EvidenceFile[]>([]);
   const [dbRequests, setDbRequests] = useState<DocumentRequest[]>([]);
+  const [dbAssessments, setDbAssessments] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('');
 
   
@@ -30,25 +30,49 @@ export default function File(_props: FileProps) {
       if (resReq.ok) setDbRequests(await resReq.json());
       const resEv = await fetchApi('/evidences', { headers });
       if (resEv.ok) setDbEvidences(await resEv.json());
+      const resAss = await fetchApi('/assessments', { headers });
+      if (resAss.ok) setDbAssessments(await resAss.json());
     } catch (e) { console.error(e); }
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const visibleRequests = user?.role === 'auditee' ? dbRequests.filter(req => req.targetDivisi === user?.divisi) : dbRequests;
-  const uniqueYears = Array.from(new Set(visibleRequests.map(r => r.assessmentYear || r.assessmentId))).sort((a, b) => b.localeCompare(a));
+  
+  const assessmentYearMap = new Map();
+  dbAssessments.forEach(a => assessmentYearMap.set(String(a.id), String(a.year)));
+
+  const getAssessmentYearOrFallback = (req: DocumentRequest) => {
+    return assessmentYearMap.get(String(req.assessmentId)) || req.assessmentYear || req.assessmentId;
+  };
+
+  const uniqueYears = Array.from(new Set(visibleRequests.map(r => getAssessmentYearOrFallback(r)))).sort((a, b) => b.localeCompare(a));
   
   useEffect(() => {
     if (uniqueYears.length > 0 && !selectedYear) setSelectedYear(uniqueYears[0]);
   }, [uniqueYears, selectedYear]);
 
-  const requestsForSelectedYear = visibleRequests.filter(req => (req.assessmentYear || req.assessmentId) === selectedYear);
+  const requestsForSelectedYear = visibleRequests.filter(req => getAssessmentYearOrFallback(req) === selectedYear);
   const groupedRequests = requestsForSelectedYear.reduce((acc, req) => {
     const key = `Aspek ${req.aspectId} - Indikator ${req.indicatorId}`;
     if (!acc[key]) acc[key] = [];
     acc[key].push(req);
     return acc;
   }, {} as Record<string, DocumentRequest[]>);
+
+  const getFactorName = (req: DocumentRequest) => {
+    if (!req.factorId) return null;
+    const assessment = dbAssessments.find(a => String(a.id) === String(req.assessmentId));
+    if (!assessment || !assessment.data) return null;
+    const aspectData = assessment.data[req.aspectId];
+    if (!aspectData) return null;
+    const indicator = aspectData.find((i: any) => i.id === req.indicatorId);
+    if (!indicator) return null;
+    const parameter = indicator.parameters.find((p: any) => p.id === req.parameterId);
+    if (!parameter) return null;
+    const factor = parameter.factors.find((f: any) => f.id === req.factorId);
+    return factor ? factor.name : null;
+  };
 
   // 🆕 FUNGSI UPLOAD KE SERVER LARAVEL
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, req: DocumentRequest) => {
@@ -102,8 +126,8 @@ export default function File(_props: FileProps) {
     if (window.confirm("Yakin ingin menghapus dokumen ini dari server?")) {
       await fetchApi(`/evidences/${evId}`, { method: 'DELETE', });
       
-      // Cek sisa file
-      const remainingFiles = dbEvidences.filter(e => e.id !== evId && e.assessmentId === req.assessmentId && e.parameterId === req.parameterId && e.divisi === req.targetDivisi);
+      // Cek sisa file (ISOLASI FAKTOR)
+      const remainingFiles = dbEvidences.filter(e => e.id !== evId && e.assessmentId === req.assessmentId && e.parameterId === req.parameterId && (e.factorId === req.factorId || (!e.factorId && !req.factorId)) && e.divisi === req.targetDivisi);
       if (remainingFiles.length === 0) {
         await fetchApi(`/document-requests/${req.id}`, {
           method: 'PUT',
@@ -173,7 +197,9 @@ export default function File(_props: FileProps) {
                     
                     {/* ROWS */}
                     {reqs.map(req => {
-                      const uploadedFiles = dbEvidences.filter(e => e.assessmentId === req.assessmentId && e.parameterId === req.parameterId && e.divisi === user?.divisi);
+                      const uploadedFiles = dbEvidences.filter(e => e.assessmentId === req.assessmentId && e.parameterId === req.parameterId && (e.factorId === req.factorId || (!e.factorId && !req.factorId)) && e.divisi === user?.divisi);
+                      const factorName = getFactorName(req);
+                      
                       return (
                         <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors align-top group">
                           <td className="px-8 py-6">
@@ -181,6 +207,12 @@ export default function File(_props: FileProps) {
                               <span className="font-black text-slate-300 mt-1 bg-slate-100 px-2 py-1 rounded text-xs border border-slate-200">{req.parameterId}</span>
                               <div className="flex-1">
                                 <p className="font-bold text-slate-800 leading-snug">{req.parameterName}</p>
+                                {factorName && (
+                                  <div className="mt-2 bg-indigo-50/50 border border-indigo-100 p-2.5 rounded-lg flex items-start gap-2 shadow-sm">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0"></div>
+                                    <p className="text-xs font-semibold text-indigo-900 leading-tight"><span className="font-black text-[10px] uppercase tracking-widest text-indigo-500 block mb-0.5">Berlaku untuk Bukti Faktor:</span> {factorName}</p>
+                                  </div>
+                                )}
                                 {req.status === 'Rejected' && req.note && (
                                   <div className="mt-3 bg-rose-50 border border-rose-200/60 p-3.5 rounded-xl flex items-start gap-3 text-rose-700 shadow-sm animate-in fade-in relative overflow-hidden">
                                     <div className="absolute left-0 top-0 w-1 h-full bg-rose-500"></div>
