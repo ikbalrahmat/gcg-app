@@ -29,8 +29,6 @@ export default function AuditeeDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       const headers = {  'Accept': 'application/json' };
-      
-      const myDivisi = (user?.divisi || '').toLowerCase().trim();
 
       try {
         if (user) {
