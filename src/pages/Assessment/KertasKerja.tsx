@@ -244,24 +244,26 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
     }
   };
 
-  const handleVerifyApprove = async (evidenceId: string, parameterId: string) => {
+  const handleVerifyApprove = async (evidenceId: string, parameterId: string, factorId?: string) => {
     if(isReadOnly) return;
     await fetchApi(`/evidences/${evidenceId}/status`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified'}) });
-    const reqToUpdate = dbRequests.find(r => r.assessmentId === assessmentId && r.parameterId === parameterId);
-    if(reqToUpdate) {
-      await fetchApi(`/document-requests/${reqToUpdate.id}`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified', note: ''}) });
+    
+    const reqsToUpdate = dbRequests.filter(r => r.assessmentId === assessmentId && r.parameterId === parameterId && (factorId ? r.factorId === factorId : true));
+    for (const req of reqsToUpdate) {
+      await fetchApi(`/document-requests/${req.id}`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Verified', note: ''}) });
     }
     fetchData();
     if(onInteraction) onInteraction();
   };
 
-  const handleVerifyReject = async (evidenceId: string, parameterId: string) => {
+  const handleVerifyReject = async (evidenceId: string, parameterId: string, factorId?: string) => {
     if(isReadOnly) return;
     if (!rejectNoteInput.trim()) return alert("Alasan penolakan / revisi harus diisi!");
     await fetchApi(`/evidences/${evidenceId}/status`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected'}) });
-    const reqToUpdate = dbRequests.find(r => r.assessmentId === assessmentId && r.parameterId === parameterId);
-    if(reqToUpdate) {
-      await fetchApi(`/document-requests/${reqToUpdate.id}`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected', note: rejectNoteInput}) });
+    
+    const reqsToUpdate = dbRequests.filter(r => r.assessmentId === assessmentId && r.parameterId === parameterId && (factorId ? r.factorId === factorId : true));
+    for (const req of reqsToUpdate) {
+      await fetchApi(`/document-requests/${req.id}`, { method: 'PUT', headers: {  'Content-Type': 'application/json' }, body: JSON.stringify({status: 'Rejected', note: rejectNoteInput}) });
     }
     setRejectingId(null); setRejectNoteInput('');
     fetchData();
@@ -719,13 +721,13 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                                          onChange={e => setRejectNoteInput(e.target.value)} 
                                        />
                                        <div className="flex gap-2">
-                                         <button type="button" onClick={() => handleVerifyReject(ev.id, ev.parameterId)} className="flex-1 bg-red-600 text-white text-[10px] py-1.5 rounded font-bold hover:bg-red-700">Kirim Revisi</button>
+                                         <button type="button" onClick={() => handleVerifyReject(ev.id, ev.parameterId, ev.factorId)} className="flex-1 bg-red-600 text-white text-[10px] py-1.5 rounded font-bold hover:bg-red-700">Kirim Revisi</button>
                                          <button type="button" onClick={() => setRejectingId(null)} className="flex-1 bg-gray-200 text-gray-700 text-[10px] py-1.5 rounded font-bold hover:bg-gray-300">Batal</button>
                                        </div>
                                      </div>
                                    ) : (
                                      <React.Fragment>
-                                       <button type="button" onClick={() => handleVerifyApprove(ev.id, ev.parameterId)} className="flex-1 bg-green-50 hover:bg-green-600 hover:text-white border border-green-200 hover:border-green-600 text-green-700 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+                                       <button type="button" onClick={() => handleVerifyApprove(ev.id, ev.parameterId, ev.factorId)} className="flex-1 bg-green-50 hover:bg-green-600 hover:text-white border border-green-200 hover:border-green-600 text-green-700 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
                                          <CheckCircle size={14}/> Setujui
                                        </button>
                                        <button type="button" onClick={() => setRejectingId(ev.id)} className="flex-1 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 hover:border-red-600 text-red-700 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
