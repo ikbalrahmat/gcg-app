@@ -4,6 +4,26 @@ import { Users, Plus, Shield, Search, Trash2, Edit, X, Unlock, UserCheck, Chevro
 import { useAuth } from '../../contexts/AuthContext';
 import type { User, UserRole, AuditorLevel } from '../../types';
 
+const MASTER_DIVISIONS = [
+  "Satuan Pengawasan Intern",
+  "Sekretriat Perusahaan",
+  "Perencanaan Strategis dan Portofolio Bisnis",
+  "Digital Commercial",
+  "Digital Strategy, Planning, and Architecture",
+  "Digital Product and Operation",
+  "Teknik dan Jaminan Keandalan",
+  "Strategic Business Unit (SBU) Currency Solution",
+  "Strategic Business Unit (SBU) High Security Solution",
+  "Riset dan Pengembangan",
+  "Pengadaan dan Fasilitas Umum",
+  "Sumber Daya Manusia",
+  "Pengamanan, K3 dan Lingkungan",
+  "Teknologi Informasi",
+  "Keuangan Operasional",
+  "Keuangan Strategis",
+  "Tata Kelola, Risiko, dan Kepatuhan"
+];
+
 export default function UserManagement() {
   const { user } = useAuth();
 
@@ -49,9 +69,7 @@ export default function UserManagement() {
     setCurrentPage(1);
   }, [search, pageSize, users]);
 
-  const existingDivisions = Array.from(
-    new Set(users.filter(u => u.role === 'auditee' && u.divisi).map(u => u.divisi as string))
-  );
+  const existingDivisions = MASTER_DIVISIONS;
 
   const openCreate = () => {
     resetForm();
@@ -71,7 +89,7 @@ export default function UserManagement() {
     
     if (u.role === 'auditee' && u.divisi) {
       setDivisi(u.divisi);
-      setIsCustomDivisi(false);
+      setIsCustomDivisi(!MASTER_DIVISIONS.includes(u.divisi));
     } else {
       setDivisi('');
       setIsCustomDivisi(false);
