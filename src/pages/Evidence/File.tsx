@@ -20,19 +20,27 @@ export default function File(_props: FileProps) {
   const [dbRequests, setDbRequests] = useState<DocumentRequest[]>([]);
   const [dbAssessments, setDbAssessments] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   
 
   const fetchData = async () => {
+    setIsLoading(true);
     const headers = {  'Accept': 'application/json' };
     try {
-      const resReq = await fetchApi('/document-requests', { headers });
+      const [resReq, resEv, resAss] = await Promise.all([
+        fetchApi('/document-requests', { headers }),
+        fetchApi('/evidences', { headers }),
+        fetchApi('/assessments', { headers })
+      ]);
       if (resReq.ok) setDbRequests(await resReq.json());
-      const resEv = await fetchApi('/evidences', { headers });
       if (resEv.ok) setDbEvidences(await resEv.json());
-      const resAss = await fetchApi('/assessments', { headers });
       if (resAss.ok) setDbAssessments(await resAss.json());
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -49,7 +57,9 @@ export default function File(_props: FileProps) {
   const uniqueYears = Array.from(new Set(visibleRequests.map(r => getAssessmentYearOrFallback(r)))).sort((a, b) => b.localeCompare(a));
   
   useEffect(() => {
-    if (uniqueYears.length > 0 && !selectedYear) setSelectedYear(uniqueYears[0]);
+    if (uniqueYears.length > 0 && !uniqueYears.includes(selectedYear)) {
+      setSelectedYear(uniqueYears[0]);
+    }
   }, [uniqueYears, selectedYear]);
 
   const requestsForSelectedYear = visibleRequests.filter(req => getAssessmentYearOrFallback(req) === selectedYear);
@@ -156,7 +166,13 @@ export default function File(_props: FileProps) {
         </div>
       </div>
 
-      {uniqueYears.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+           <div className="animate-spin h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full mb-6"></div>
+           <h2 className="text-xl font-black text-slate-800 mb-2">Memuat Tagihan Dokumen</h2>
+           <p className="text-slate-500 font-medium text-sm">Harap tunggu sebentar, sedang sinkronisasi data dengan server...</p>
+        </div>
+      ) : uniqueYears.length === 0 ? (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
            <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 shadow-sm"><CheckCircle className="w-12 h-12 text-emerald-500/80" strokeWidth={2} /></div>
            <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Belum Ada Tagihan GCG</h2>

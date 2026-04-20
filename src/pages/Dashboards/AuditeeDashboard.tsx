@@ -16,11 +16,8 @@ interface AssessmentMeta {
 export default function AuditeeDashboard() {
   const { user } = useAuth();
   
-  const [stats, setStats] = useState({
-    needUpload: 0,
-    rejected: 0,
-    approved: 0
-  });
+  const [dbRequests, setDbRequests] = useState<any[]>([]);
+  const [dbEvidences, setDbEvidences] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [assessments, setAssessments] = useState<AssessmentMeta[]>([]);
@@ -37,39 +34,21 @@ export default function AuditeeDashboard() {
 
       try {
         if (user) {
-          // 1. Fetch Document Requests (Pencarian targetDivisi, dan status 'Requested')
+          // 1. Fetch Document Requests (Simpan ke State)
           const resReq = await fetchApi('/document-requests', { headers });
-          let needUploadCount = 0;
           if (resReq.ok) {
             const resData = await resReq.json();
             const reqData = Array.isArray(resData) ? resData : (resData.data || []);
-            if (Array.isArray(reqData)) {
-              needUploadCount = reqData.filter((r: any) => {
-                const target = (r.targetDivisi || '').toLowerCase().trim(); // API mereturn targetDivisi
-                return (r.status === 'Requested' || r.status === 'Open') && (target === myDivisi || target.includes(myDivisi));
-              }).length;
-            }
+            setDbRequests(reqData);
           }
 
-          // 2. Fetch Evidences (Mencocokkan property 'divisi' saja dari API)
+          // 2. Fetch Evidences (Simpan ke State)
           const resEvi = await fetchApi('/evidences', { headers });
-          let rejectedCount = 0, approvedCount = 0;
           if (resEvi.ok) {
             const resData = await resEvi.json();
             const eviData = Array.isArray(resData) ? resData : (resData.data || []);
-            if (Array.isArray(eviData)) {
-              // Ambil dokumen yg divisi nya cocok dengan divisi auditee
-              const myEvidences = eviData.filter((e: any) => {
-                const uploaderDivisi = (e.divisi || '').toLowerCase().trim();
-                return (myDivisi !== '' && uploaderDivisi === myDivisi) || uploaderDivisi.includes(myDivisi);
-              });
-
-              rejectedCount = myEvidences.filter((e: any) => e.status === 'Rejected' || e.status === 'Revisi' || e.status === 'Ditolak').length;
-              approvedCount = myEvidences.filter((e: any) => e.status === 'Verified' || e.status === 'Approved').length;
-            }
+            setDbEvidences(eviData);
           }
-          
-          setStats({ needUpload: needUploadCount, rejected: rejectedCount, approved: approvedCount });
         }
 
         // 3. Load Data Assessment & Master untuk Tabel YoY
@@ -103,6 +82,31 @@ export default function AuditeeDashboard() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const stats = useMemo(() => {
+    let needUpload = 0, rejected = 0, approved = 0;
+    if (!selectedAssessmentId) return { needUpload, rejected, approved };
+    
+    const myDivisi = (user?.divisi || '').toLowerCase().trim();
+
+    // Reqs
+    const assReqs = dbRequests.filter(r => r.assessmentId === selectedAssessmentId);
+    needUpload = assReqs.filter(r => {
+      const target = (r.targetDivisi || '').toLowerCase().trim();
+      return (r.status === 'Requested' || r.status === 'Open') && (myDivisi === '' || target.includes(myDivisi));
+    }).length;
+
+    // Evis
+    const assEvis = dbEvidences.filter(e => e.assessmentId === selectedAssessmentId);
+    const myEvis = assEvis.filter(e => {
+       const uploaderDivisi = (e.divisi || '').toLowerCase().trim();
+       return myDivisi === '' || uploaderDivisi.includes(myDivisi);
+    });
+    rejected = myEvis.filter(e => e.status === 'Rejected' || e.status === 'Revisi' || e.status === 'Ditolak').length;
+    approved = myEvis.filter(e => e.status === 'Verified' || e.status === 'Approved').length;
+
+    return { needUpload, rejected, approved };
+  }, [dbRequests, dbEvidences, selectedAssessmentId, user]);
 
   const activeAssessment = assessments.find(a => a.id === selectedAssessmentId);
   const prevAssessment = useMemo(() => {
