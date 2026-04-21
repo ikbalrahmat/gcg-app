@@ -107,7 +107,7 @@ export default function Assessment({ evidences, setEvidences, documentRequests, 
               id: param.id, parameterName: param.name, bobot: param.bobot || 0, parameterScore: 0, fulfillment: 0,
               factors: param.factors.map(fac => ({
                 id: fac.id, name: fac.name, description: '', factorScore: 0, recommendation: '',
-                subFactors: fac.subFactors ? fac.subFactors.map(sub => ({ id: sub.id, name: sub.name, description: sub.description || '', isFulfilled: false })) : []
+                subFactors: fac.subFactors ? fac.subFactors.map(sub => ({ id: sub.id, name: sub.name, description: sub.description || '', subFactorScore: 0 })) : []
               }))
             }))
           }));
