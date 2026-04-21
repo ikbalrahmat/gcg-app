@@ -29,13 +29,7 @@ interface KertasKerjaProps {
 
 interface ModalConfig { show: boolean; type: 'factor' | ''; iIdx: number | null; pIdx: number | null; fIdx: number | null; data: any; }
 
-const calculateFactorScoreSK16 = (percentage: number): number => {
-  if (percentage === 0) return 0.00;
-  if (percentage > 0 && percentage < 50) return 0.25;
-  if (percentage >= 50 && percentage < 75) return 0.50;
-  if (percentage >= 75 && percentage < 85) return 0.75;
-  return 1.00;
-};
+
 
 const KertasKerja: React.FC<KertasKerjaProps> = ({
   assessmentId, assessmentYear, aspect, masterAspectBobot, onBack, assessmentData, setAssessmentData, isReadOnly = false, onInteraction
