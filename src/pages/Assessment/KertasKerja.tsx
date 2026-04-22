@@ -664,14 +664,25 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                             <label className="block text-xs font-bold text-gray-500 uppercase">Divisi PIC <span className="text-[9px] lowercase text-gray-400 font-normal ml-1">(Bisa &gt; 1)</span></label>
                             {!isReadOnly && (
                               <div className="flex gap-2">
-                                <button type="button" onClick={() => setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: divisions.join(', ') } })} className="text-[9px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded">Semua</button>
+                                <button type="button" onClick={() => setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: divisions.join(' | ') } })} className="text-[9px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded">Semua</button>
                                 <button type="button" onClick={() => setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: '' } })} className="text-[9px] font-bold text-gray-500 hover:text-gray-800 uppercase tracking-widest bg-gray-100 px-2 py-1 rounded">Reset</button>
                               </div>
                             )}
                           </div>
                           <div className="border border-gray-300 rounded-lg bg-white shadow-sm max-h-40 overflow-y-auto custom-scrollbar p-2 grid grid-cols-1 md:grid-cols-2 gap-1">
                             {divisions.map(div => {
-                              const selectedArr = modalConfig.data.picDivisi ? modalConfig.data.picDivisi.split(', ') : [];
+                              let selectedArr: string[] = [];
+                              if (modalConfig.data.picDivisi) {
+                                if (modalConfig.data.picDivisi.includes('|')) {
+                                  selectedArr = modalConfig.data.picDivisi.split('|').map((s: string) => s.trim());
+                                } else {
+                                  if (divisions.includes(modalConfig.data.picDivisi.trim())) {
+                                    selectedArr = [modalConfig.data.picDivisi.trim()];
+                                  } else {
+                                    selectedArr = modalConfig.data.picDivisi.split(',').map((s: string) => s.trim());
+                                  }
+                                }
+                              }
                               const isChecked = selectedArr.includes(div);
                               return (
                                 <label key={div} className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${isChecked ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-gray-50 text-gray-600 font-medium text-[11px]'} ${isReadOnly ? 'pointer-events-none opacity-60' : ''}`}>
@@ -680,7 +691,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                                     let newArr = [...selectedArr];
                                     if (isChecked) newArr = newArr.filter(d => d !== div);
                                     else newArr.push(div);
-                                    setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: newArr.join(', ') } });
+                                    setModalConfig({ ...modalConfig, data: { ...modalConfig.data, picDivisi: newArr.join(' | ') } });
                                   }} />
                                   <span className="text-[11px] truncate whitespace-normal leading-tight">{div}</span>
                                 </label>

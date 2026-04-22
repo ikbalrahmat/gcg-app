@@ -81,6 +81,12 @@ export default function Monitoring() {
         md.forEach((a: any) => aspectsMap[a.id] = `${a.id} - ${a.name}`);
       }
 
+      const resDiv = await fetchApi('/divisions', { headers });
+      let divisionsList: string[] = [];
+      if (resDiv.ok) {
+        divisionsList = await resDiv.json();
+      }
+
       const resAss = await fetchApi('/assessments', { headers });
       if (resAss.ok) {
         const assessments = await resAss.json();
@@ -98,7 +104,20 @@ export default function Monitoring() {
                 ind.parameters.forEach((param: any) => {
                   param.factors.forEach((factor: any) => {
                     if (factor.recommendation && factor.picDivisi && factor.dueDate) {
-                      const divTargets = factor.picDivisi.split(',').map((d: string) => d.trim()).filter((d: string) => d);
+                      let divTargets: string[] = [];
+                      if (factor.picDivisi.includes('|')) {
+                        divTargets = factor.picDivisi.split('|').map((d: string) => d.trim()).filter((d: string) => Boolean(d));
+                      } else {
+                        let tempStr = factor.picDivisi;
+                        divisionsList.filter((d: string) => d.includes(',')).forEach((div: string) => {
+                          if (tempStr.includes(div)) {
+                            divTargets.push(div);
+                            tempStr = tempStr.replace(div, '');
+                          }
+                        });
+                        const remaining = tempStr.split(',').map((d: string) => d.trim()).filter((d: string) => Boolean(d));
+                        divTargets = [...divTargets, ...remaining];
+                      }
                       divTargets.forEach((divName: string) => {
                         extractedTasks.push({
                           id: `${ass.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}_${divName.replace(/[\s&]/g,'')}`,
