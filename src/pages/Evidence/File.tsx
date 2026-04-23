@@ -229,11 +229,18 @@ export default function File(_props: FileProps) {
                                     <p className="text-xs font-semibold text-indigo-900 leading-tight"><span className="font-black text-[10px] uppercase tracking-widest text-indigo-500 block mb-0.5">Berlaku untuk Bukti Faktor:</span> {factorName}</p>
                                   </div>
                                 )}
+                                {req.note && req.status !== 'Rejected' && (
+                                  <div className="mt-3 bg-amber-50 border border-amber-200/60 p-3.5 rounded-xl flex items-start gap-3 text-amber-800 shadow-sm animate-in fade-in relative overflow-hidden">
+                                    <div className="absolute left-0 top-0 w-1 h-full bg-amber-500"></div>
+                                    <Info size={16} className="shrink-0 mt-0.5 text-amber-500" />
+                                    <div><p className="text-[9px] font-black uppercase tracking-widest mb-1 text-amber-600/80">Keterangan / Pesan Auditor:</p><p className="text-xs font-bold leading-relaxed">{req.note}</p></div>
+                                  </div>
+                                )}
                                 {req.status === 'Rejected' && req.note && (
                                   <div className="mt-3 bg-rose-50 border border-rose-200/60 p-3.5 rounded-xl flex items-start gap-3 text-rose-700 shadow-sm animate-in fade-in relative overflow-hidden">
                                     <div className="absolute left-0 top-0 w-1 h-full bg-rose-500"></div>
                                     <Info size={16} className="shrink-0 mt-0.5 text-rose-500" />
-                                    <div><p className="text-[9px] font-black uppercase tracking-widest mb-1 text-rose-500/80">Revisi / Penolakan Berkas:</p><p className="text-xs font-bold">{req.note}</p></div>
+                                    <div><p className="text-[9px] font-black uppercase tracking-widest mb-1 text-rose-500/80">Revisi / Penolakan Berkas:</p><p className="text-xs font-bold leading-relaxed">{req.note}</p></div>
                                   </div>
                                 )}
                               </div>

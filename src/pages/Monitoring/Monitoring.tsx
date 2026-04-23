@@ -556,7 +556,7 @@ export default function Monitoring() {
                         <ShieldAlert className="text-rose-400 shrink-0 mt-0.5" strokeWidth={2.5} size={20} />
                         <div>
                           <p className="font-semibold text-slate-800">{task.recommendation}</p>
-                          <p className="text-[10px] text-rose-500 mt-2 font-black uppercase tracking-widest bg-rose-100/50 px-2 py-0.5 rounded w-max">Tugasan Dari: {task.picAuditor}</p>
+                          <p className="hidden text-[10px] text-rose-500 mt-2 font-black uppercase tracking-widest bg-rose-100/50 px-2 py-0.5 rounded w-max">Tugasan Dari: {task.picAuditor}</p>
                         </div>
                       </div>
                     </div>
@@ -585,7 +585,7 @@ export default function Monitoring() {
                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-300 shadow-sm mb-4"><ClipboardList size={20} strokeWidth={2}/></div>
                         <p className="text-[10px] font-black text-slate-400 uppercase mb-4 text-center tracking-widest">Kerahkan Upaya Baru</p>
                         <button onClick={() => handleStartProgress(task)} className="w-full bg-indigo-600 text-white font-black py-4 rounded-xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/30 text-xs flex items-center justify-center gap-2 active:scale-95 uppercase tracking-widest">
-                           Mulai Eksekusi <ChevronDown size={14} className="-rotate-90" strokeWidth={3}/>
+                           Update Tindak Lanjut <ChevronDown size={14} className="-rotate-90" strokeWidth={3}/>
                         </button>
                       </div>
                     )}

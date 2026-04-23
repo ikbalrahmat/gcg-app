@@ -13,6 +13,7 @@ import UserManagement from './pages/User Managament/UserManagement';
 import MasterDataManager from './pages/Settings/MasterDataManager';
 import ChangePassword from './pages/Auth/ChangePassword';
 import ActivityLog from './pages/Logs/ActivityLog'; // 🆕 IMPORT AUDIT LOG
+import ArsipDokumen from './pages/Document/ArsipDokumen'; // 🆕 IMPORT ARSIP DOKUMEN
 import type { EvidenceFile, DocumentRequest } from './types';
 
 function App() {
@@ -122,6 +123,11 @@ function App() {
       case 'report':
         return canAccess(['auditor', 'admin_spi', 'manajemen'])
           ? <Report />
+          : <Dashboard />;
+
+      case 'arsip-dokumen':
+        return canAccess(['auditor', 'admin_spi', 'manajemen'])
+          ? <ArsipDokumen />
           : <Dashboard />;
 
       case 'user-management':

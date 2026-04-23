@@ -165,12 +165,12 @@ export default function Dashboard() {
                     <th rowSpan={2} className="px-4 py-3 border-r border-slate-200 text-center w-24">Bobot (%)</th>
                     
                     {/* Header Tahun Sebelumnya */}
-                    <th colSpan={3} className="px-4 py-2 border-r border-slate-200 text-center bg-slate-200/50">
+                    <th colSpan={2} className="px-4 py-2 border-r border-slate-200 text-center bg-slate-200/50">
                       Tahun {prevAssessment ? prevAssessment.year : 'Sebelumnya'}
                     </th>
                     
                     {/* Header Tahun Terpilih */}
-                    <th colSpan={3} className="px-4 py-2 border-r border-slate-200 text-center bg-blue-50 text-blue-700">
+                    <th colSpan={2} className="px-4 py-2 border-r border-slate-200 text-center bg-blue-50 text-blue-700">
                       Tahun {activeAssessment.year}
                     </th>
                     
@@ -179,13 +179,11 @@ export default function Dashboard() {
                   <tr>
                     {/* Sub-Header Tahun Sebelumnya */}
                     <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-slate-50">Skor</th>
-                    <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-slate-50">%</th>
-                    <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-slate-50">Kategori</th>
+                    <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-slate-50">Capaian %</th>
                     
                     {/* Sub-Header Tahun Terpilih */}
                     <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-blue-50/50">Skor</th>
-                    <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-blue-50/50">%</th>
-                    <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-blue-50/50">Kategori</th>
+                    <th className="px-3 py-2 border-r border-t border-slate-200 text-center bg-blue-50/50">Capaian %</th>
                   </tr>
                 </thead>
                   <tbody className="text-sm">
@@ -199,22 +197,10 @@ export default function Dashboard() {
                         {/* Data Tahun Sebelumnya */}
                         <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? row.skorPrev.toFixed(3) : '-'}</td>
                         <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? `${row.persenPrev.toFixed(2)}%` : '-'}</td>
-                        <td className="px-4 py-4 text-center border-r border-slate-100">
-                          {row.hasPrev && row.katPrev ? (
-                            <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>
-                              {row.katPrev.label}
-                            </span>
-                          ) : '-'}
-                        </td>
 
                         {/* Data Tahun Terpilih */}
                         <td className="px-4 py-4 text-center font-black text-blue-600 border-r border-slate-100 bg-blue-50/20">{row.skorNow.toFixed(3)}</td>
                         <td className="px-4 py-4 text-center font-bold text-slate-700 border-r border-slate-100 bg-blue-50/20">{row.persenNow.toFixed(2)}%</td>
-                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-blue-50/20">
-                          {row.katNow && <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>
-                            {row.katNow.label}
-                          </span>}
-                        </td>
 
                         {/* Tren */}
                         <td className="px-4 py-4 text-center">
@@ -237,20 +223,8 @@ export default function Dashboard() {
                         <td className="px-4 py-4 text-center font-semibold text-orange-600 border-r border-slate-100">&plusmn; {row.bobot.toFixed(3)}</td>
                         <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? row.skorPrev.toFixed(3) : '-'}</td>
                         <td className="px-4 py-4 text-center font-medium text-slate-500 border-r border-slate-100">{row.hasPrev ? `${row.persenPrev.toFixed(2)}%` : '-'}</td>
-                        <td className="px-4 py-4 text-center border-r border-slate-100">
-                          {row.hasPrev && row.katPrev ? (
-                            <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katPrev.bg} ${row.katPrev.color}`}>
-                              {row.katPrev.label}
-                            </span>
-                          ) : '-'}
-                        </td>
                         <td className={`px-4 py-4 text-center font-black border-r border-slate-100 bg-orange-50/50 ${row.skorNow > 0 ? 'text-emerald-600' : row.skorNow < 0 ? 'text-rose-600' : 'text-slate-400'}`}>{row.skorNow > 0 ? '+' : ''}{row.skorNow.toFixed(3)}</td>
                         <td className="px-4 py-4 text-center font-bold text-orange-600 border-r border-slate-100 bg-orange-50/50">{row.persenNow.toFixed(2)}%</td>
-                        <td className="px-4 py-4 text-center border-r border-slate-100 bg-orange-50/50">
-                          {row.katNow && <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${row.katNow.bg} ${row.katNow.color}`}>
-                            {row.katNow.label}
-                          </span>}
-                        </td>
                         <td className="px-4 py-4 text-center">
                           {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
                           {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
@@ -268,18 +242,10 @@ export default function Dashboard() {
                     {/* Total Sebelumnya */}
                     <td className="px-4 py-5 text-center text-slate-400 border-r border-slate-700">{prevAssessment ? totalSkorPrev.toFixed(3) : '-'}</td>
                     <td className="px-4 py-5 text-center text-slate-400 border-r border-slate-700">{prevAssessment ? `${totalPersenPrev.toFixed(2)}%` : '-'}</td>
-                    <td className="px-4 py-5 text-center border-r border-slate-700">
-                      {prevAssessment ? <span className={`px-2 py-1 rounded text-[9px] font-black ${predikatPrev.color.replace('text-', 'text-').replace('-700', '-400')}`}>{predikatPrev.label}</span> : '-'}
-                    </td>
 
                     {/* Total Terpilih */}
                     <td className="px-4 py-5 text-center text-blue-400 text-lg border-r border-slate-700">{totalSkorNow.toFixed(3)}</td>
                     <td className="px-4 py-5 text-center text-emerald-400 text-lg border-r border-slate-700">{totalPersenNow.toFixed(2)}%</td>
-                    <td className="px-4 py-5 text-center border-r border-slate-700">
-                      <span className={`px-2 py-1 rounded text-[9px] font-black ${predikatNow.color.replace('text-', 'text-').replace('-700', '-400')}`}>
-                        {predikatNow.label}
-                      </span>
-                    </td>
 
                     <td className="px-4 py-5 text-center">
                       {prevAssessment ? (

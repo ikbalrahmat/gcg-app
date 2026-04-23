@@ -10,6 +10,7 @@ import {
   Menu,
   Database,
   Activity,
+  Archive,
   X // 🆕 IMPORT ICON X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -58,6 +59,12 @@ export default function Sidebar({
         user?.role === 'admin_spi' ||
         user?.role === 'manajemen'
           ? [{ id: 'report', label: 'Report', icon: BarChart3 }]
+          : []),
+
+        ...(user?.role === 'auditor' ||
+        user?.role === 'admin_spi' ||
+        user?.role === 'manajemen'
+          ? [{ id: 'arsip-dokumen', label: 'Arsip Dokumen', icon: Archive }]
           : []),
       ],
     },

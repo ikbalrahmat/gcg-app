@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { ChevronLeft, Edit2, Target, FileText, CheckCircle, Save, Layers, X, UploadCloud, BellRing, Clock, AlertCircle, History as HistoryIcon, Copy, ExternalLink, Download, Trash2, Eye, Lock } from 'lucide-react';
+import { ChevronLeft, Edit2, Target, FileText, CheckCircle, Save, Layers, X, UploadCloud, BellRing, Clock, AlertCircle, History as HistoryIcon, Copy, ExternalLink, Download, Trash2, Eye, Lock, Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { EvidenceFile, DocumentRequest } from '../../types';
 
@@ -42,6 +42,8 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectNoteInput, setRejectNoteInput] = useState('');
   const [viewingDocument, setViewingDocument] = useState<EvidenceFile | null>(null);
+  const [isArchivePickerOpen, setIsArchivePickerOpen] = useState(false);
+  const [archiveSearch, setArchiveSearch] = useState('');
 
   const [dbEvidences, setDbEvidences] = useState<EvidenceFile[]>([]);
   const [dbRequests, setDbRequests] = useState<DocumentRequest[]>([]);
@@ -297,6 +299,39 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
 
       } catch (err) {
         alert("Gagal koneksi ke server saat menyalin arsip.");
+      }
+    }
+  };
+
+  const handleLinkFromArchive = async (ev: EvidenceFile) => {
+    if (!modalConfig.data) return;
+    if (window.confirm(`Gunakan dokumen "${ev.fileName}" untuk FUK ini?`)) {
+      try {
+        const newId = `EV-${Date.now()}`;
+        const indicators = assessmentData[aspect.id] || [];
+        const res = await fetchApi(`/evidences/${ev.id}/link-to-fuk`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            newAspectId: aspect.id,
+            newIndicatorId: indicators[modalConfig.iIdx!].id,
+            newParameterId: indicators[modalConfig.iIdx!].parameters[modalConfig.pIdx!].id,
+            newFactorId: modalConfig.data.id,
+            newId: newId
+          })
+        });
+        
+        if (res.ok) {
+          fetchData();
+          if (onInteraction) onInteraction();
+          setIsArchivePickerOpen(false);
+          alert('Berhasil menyalin dokumen dari Arsip.');
+        } else {
+          alert('Gagal menyalin dokumen.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Terjadi kesalahan server.');
       }
     }
   };
@@ -817,24 +852,40 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                     </div>
 
                     {!isReadOnly && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-blue-200/50 pt-5 mt-auto">
-                        <label className="flex items-center justify-center gap-2 bg-white border border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-lg py-2.5 cursor-pointer transition-all shadow-sm">
-                          <UploadCloud size={16} />
-                          <span className="text-xs font-bold uppercase">Auditor Upload</span>
-                          <input type="file" accept=".pdf, .xls, .xlsx" className="hidden" onChange={handleUploadOlehAuditor} />
-                        </label>
-                        <div className="flex gap-2">
-                          <select
-                            className="flex-1 text-xs font-bold px-3 border border-blue-300 rounded-lg outline-none bg-white text-gray-700"
-                            value={requestDivisi}
-                            onChange={e => setRequestDivisi(e.target.value)}
-                          >
-                            <option value="">-- Tagih ke Divisi --</option>
-                            {divisions.map(d => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                          <button type="button" onClick={handleRequestDocument} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase px-4 rounded-lg transition-colors">
-                            Kirim
+                      <div className="flex flex-col gap-3 border-t border-blue-200/50 pt-5 mt-auto">
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="flex items-center justify-center gap-2 bg-white border border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-blue-600 rounded-lg py-2.5 cursor-pointer transition-all shadow-sm">
+                            <UploadCloud size={16} />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Auditor Upload</span>
+                            <input type="file" accept=".pdf, .xls, .xlsx" className="hidden" onChange={handleUploadOlehAuditor} />
+                          </label>
+                          <button type="button" onClick={() => setIsArchivePickerOpen(true)} className="flex items-center justify-center gap-2 bg-white border border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50 text-indigo-600 rounded-lg py-2.5 transition-all shadow-sm">
+                            <HistoryIcon size={16} />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">Cari di Arsip</span>
                           </button>
+                        </div>
+                        <div className="flex flex-col gap-2 bg-slate-50/80 p-3 rounded-xl border border-slate-200 shadow-inner">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><Info size={12}/> Keterangan Permintaan (Opsional)</label>
+                          <textarea
+                            className="w-full text-xs font-medium px-3 py-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white placeholder:text-slate-400 custom-scrollbar"
+                            rows={2}
+                            placeholder="Contoh: Lampirkan pedoman tata kelola terbaru..."
+                            value={requestNote}
+                            onChange={e => setRequestNote(e.target.value)}
+                          />
+                          <div className="flex gap-2 mt-1">
+                            <select
+                              className="flex-1 text-xs font-bold px-3 py-2.5 border border-blue-300 rounded-lg outline-none bg-white text-gray-700"
+                              value={requestDivisi}
+                              onChange={e => setRequestDivisi(e.target.value)}
+                            >
+                              <option value="">-- Pilih Divisi Tujuan --</option>
+                              {divisions.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                            <button type="button" onClick={handleRequestDocument} className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold uppercase px-6 rounded-lg transition-colors shadow-md shadow-blue-500/20 active:scale-95">
+                              Kirim Tagihan
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -895,6 +946,57 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
           </div>
         </div>
       )}
+      {/* MODAL ARCHIVE PICKER (1-CLICK COPY) */}
+      {isArchivePickerOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 px-6 py-4 flex justify-between items-center text-white shrink-0 shadow-md">
+              <div className="flex items-center space-x-3">
+                <HistoryIcon size={20} className="text-indigo-400" />
+                <h2 className="text-sm font-black uppercase tracking-widest">Pilih Dokumen dari Arsip TB {assessmentYear}</h2>
+              </div>
+              <button onClick={() => setIsArchivePickerOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 border-b border-slate-200 shrink-0">
+              <input
+                type="text"
+                placeholder="Cari nama dokumen atau divisi..."
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium shadow-inner"
+                value={archiveSearch}
+                onChange={e => setArchiveSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-slate-50">
+              {dbEvidences.filter(e => e.assessmentId === assessmentId && e.factorId !== modalConfig.data?.id).filter(e => archiveSearch ? e.fileName.toLowerCase().includes(archiveSearch.toLowerCase()) || e.divisi.toLowerCase().includes(archiveSearch.toLowerCase()) : true).length === 0 ? (
+                <div className="text-center p-10 text-slate-400 text-sm font-medium">Tidak ada dokumen di arsip yang cocok.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {dbEvidences.filter(e => e.assessmentId === assessmentId && e.factorId !== modalConfig.data?.id).filter(e => archiveSearch ? e.fileName.toLowerCase().includes(archiveSearch.toLowerCase()) || e.divisi.toLowerCase().includes(archiveSearch.toLowerCase()) : true).map(e => (
+                    <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition-all group">
+                      <div>
+                        <div className="flex items-start gap-2 text-indigo-600 mb-3">
+                          <FileText size={18} className="shrink-0 mt-0.5" />
+                          <span className="text-xs font-bold leading-tight line-clamp-2 group-hover:text-indigo-700" title={e.fileName}>{e.fileName}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">Oleh: {e.divisi}</span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">Verified</span>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => handleLinkFromArchive(e)} className="mt-4 w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-black text-[10px] uppercase py-2.5 rounded-lg transition-all flex justify-center items-center gap-1.5">
+                        <CheckCircle size={14} /> Gunakan Dokumen Ini
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
