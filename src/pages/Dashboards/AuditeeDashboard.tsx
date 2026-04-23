@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { UploadCloud, XCircle, CheckCircle2, FileWarning, ArrowRight, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { UploadCloud, XCircle, CheckCircle2, FileWarning, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { MasterAspect } from '../../data/masterIndicators';
 import { calculateGCGData } from '../../utils/gcgCalculator';
 
@@ -122,7 +122,6 @@ export default function AuditeeDashboard() {
     predikatNow,
     totalSkorPrev,
     totalPersenPrev,
-    predikatPrev,
   } = useMemo(() => calculateGCGData(activeAssessment, prevAssessment, masterAspects), [activeAssessment, prevAssessment, masterAspects]);
 
   return (

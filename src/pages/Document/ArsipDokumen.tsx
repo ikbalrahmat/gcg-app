@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -333,10 +333,10 @@ export default function ArsipDokumen() {
                                 </div>
 
                                 <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                                  <button onClick={() => setViewingDoc({url: ev.fileUrl, name: ev.fileName})} className="flex-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 font-black py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 border border-slate-200 hover:border-indigo-200">
+                                  <button onClick={() => setViewingDoc({url: ev.fileUrl || '', name: ev.fileName})} className="flex-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 font-black py-2 rounded-xl text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 border border-slate-200 hover:border-indigo-200">
                                     <Eye size={14} strokeWidth={2.5}/> Pratinjau
                                   </button>
-                                  <a href={ev.fileUrl.replace(/^http:\/\//i, 'https://')} target="_blank" download className="flex-none p-2 bg-slate-50 hover:bg-indigo-600 text-slate-500 hover:text-white rounded-xl transition-all border border-slate-200 hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-500/30">
+                                  <a href={(ev.fileUrl || '').replace(/^http:\/\//i, 'https://')} target="_blank" download className="flex-none p-2 bg-slate-50 hover:bg-indigo-600 text-slate-500 hover:text-white rounded-xl transition-all border border-slate-200 hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-500/30">
                                     <Download size={16} strokeWidth={2.5}/>
                                   </a>
                                 </div>

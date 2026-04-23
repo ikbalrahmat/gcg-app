@@ -75,7 +75,6 @@ export default function Dashboard() {
     predikatNow,
     totalSkorPrev,
     totalPersenPrev,
-    predikatPrev,
   } = useMemo(() => calculateGCGData(activeAssessment, prevAssessment, masterAspects), [activeAssessment, prevAssessment, masterAspects]);
 
   return (

@@ -147,7 +147,6 @@ export default function AuditorDashboard() {
     predikatNow,
     totalSkorPrev,
     totalPersenPrev,
-    predikatPrev,
   } = useMemo(() => calculateGCGData(activeAssessment, prevAssessment, masterAspects), [activeAssessment, prevAssessment, masterAspects]);
 
   return (
