@@ -67,8 +67,7 @@ export default function Report() {
     modifierAspects,
     totalBobot,
     totalSkorNow: totalSkor,
-    totalPersenNow: totalCapaianPersen,
-    predikatNow: totalKategori
+    totalPersenNow: totalCapaianPersen
   } = useMemo(() => calculateGCGData(activeAssessment, null, masterAspects), [activeAssessment, masterAspects]);
 
   // Fungsi Upload Laporan Final Menggunakan FormData
