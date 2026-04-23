@@ -27,7 +27,7 @@ export default function AuditorDashboard() {
   const [assessments, setAssessments] = useState<any[]>([]);
   const [masterAspects, setMasterAspects] = useState<any[]>([]);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>('');
-  
+
   const [requests, setRequests] = useState<any[]>([]);
   const [evidences, setEvidences] = useState<any[]>([]);
   const [tlRecordsDict, setTlRecordsDict] = useState<any>({});
@@ -65,18 +65,18 @@ export default function AuditorDashboard() {
         }
 
         if (resReq.ok) {
-           const resData = await resReq.json();
-           setRequests(Array.isArray(resData) ? resData : (resData.data || []));
+          const resData = await resReq.json();
+          setRequests(Array.isArray(resData) ? resData : (resData.data || []));
         }
 
         if (resEvi.ok) {
-           const resData = await resEvi.json();
-           setEvidences(Array.isArray(resData) ? resData : (resData.data || []));
+          const resData = await resEvi.json();
+          setEvidences(Array.isArray(resData) ? resData : (resData.data || []));
         }
 
         if (resTL.ok) {
-           const resData = await resTL.json();
-           setTlRecordsDict((resData && !Array.isArray(resData)) ? resData : {});
+          const resData = await resTL.json();
+          setTlRecordsDict((resData && !Array.isArray(resData)) ? resData : {});
         }
 
       } catch (error) {
@@ -106,28 +106,28 @@ export default function AuditorDashboard() {
 
     // 2. Evidence
     const myParamIds = myAssReq.map((r: any) => r.parameterId);
-    const pendingEvi = evidences.filter((e: any) => 
+    const pendingEvi = evidences.filter((e: any) =>
       myParamIds.includes(e.parameterId) && (e.status === 'Menunggu Verifikasi' || e.status === 'Pending')
     ).length;
 
     // 3. TL Records
     let openTL = 0;
     if (activeAssessment.status !== 'Draft' && activeAssessment.data && typeof activeAssessment.data === 'object') {
-       Object.entries(activeAssessment.data).forEach(([aspectId, indicators]: [string, any]) => {
-         indicators.forEach((ind: any) => {
-           ind.parameters.forEach((param: any) => {
-             param.factors.forEach((factor: any) => {
-               if (factor.recommendation && factor.dueDate) {
-                 if (isGodMode || (factor.picAuditor || '').toLowerCase().trim() === myName) {
-                    const tId = `${activeAssessment.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
-                    const tlStatus = tlRecordsDict[tId]?.status;
-                    if (tlStatus !== 'Closed' && tlStatus !== 'Selesai') openTL++;
-                 }
-               }
-             });
-           });
-         });
-       });
+      Object.entries(activeAssessment.data).forEach(([aspectId, indicators]: [string, any]) => {
+        indicators.forEach((ind: any) => {
+          ind.parameters.forEach((param: any) => {
+            param.factors.forEach((factor: any) => {
+              if (factor.recommendation && factor.dueDate) {
+                if (isGodMode || (factor.picAuditor || '').toLowerCase().trim() === myName) {
+                  const tId = `${activeAssessment.id}_${aspectId}_${ind.id}_${param.id}_${factor.id}`;
+                  const tlStatus = tlRecordsDict[tId]?.status;
+                  if (tlStatus !== 'Closed' && tlStatus !== 'Selesai') openTL++;
+                }
+              }
+            });
+          });
+        });
+      });
     }
 
     setStats({ pendingEvidences: pendingEvi, openRequests: openReq, openTLs: openTL });
@@ -242,7 +242,6 @@ export default function AuditorDashboard() {
               </div>
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest z-10 mb-1">Pantauan Tindak Lanjut</h3>
               <p className="text-xs text-slate-500 font-medium z-10 flex-1">Tindak Lanjut dari temuan sebelumnya yang statusnya belum Closed.</p>
-              <a href="/monitoring" className="mt-4 text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:text-blue-800 z-10 w-max">Pantau TL <ArrowRight size={14} /></a>
             </div>
           </div>
 
@@ -295,7 +294,7 @@ export default function AuditorDashboard() {
                       <tr key={row.id} className={`border-b border-orange-100 transition-colors ${row.isBonusActive ? 'bg-orange-50/30' : 'bg-slate-50 opacity-50'}`}>
                         <td className="px-4 py-4 text-center font-black text-orange-400 border-r border-slate-100">{comparativeData.length + idx + 1}</td>
                         <td className="px-4 py-4 font-bold text-orange-700 border-r border-slate-100 flex items-center justify-between">
-                            <span>{row.name}</span>
+                          <span>{row.name}</span>
 
                         </td>
                         <td className="px-4 py-4 text-center font-semibold text-orange-600 border-r border-slate-100">&plusmn; {row.bobot.toFixed(3)}</td>
@@ -304,9 +303,9 @@ export default function AuditorDashboard() {
                         <td className={`px-4 py-4 text-center font-black border-r border-slate-100 bg-orange-50/50 ${row.skorNow > 0 ? 'text-emerald-600' : row.skorNow < 0 ? 'text-rose-600' : 'text-slate-400'}`}>{row.skorNow > 0 ? '+' : ''}{row.skorNow.toFixed(3)}</td>
                         <td className="px-4 py-4 text-center font-bold text-orange-600 border-r border-slate-100 bg-orange-50/50">{row.persenNow.toFixed(2)}%</td>
                         <td className="px-4 py-4 text-center">
-                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16}/> Naik</div>}
-                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16}/> Turun</div>}
-                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16}/> Tetap</div>}
+                          {row.trend === 'up' && <div className="flex items-center justify-center gap-1 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={16} /> Naik</div>}
+                          {row.trend === 'down' && <div className="flex items-center justify-center gap-1 text-red-600 text-[10px] font-black uppercase tracking-widest"><TrendingDown size={16} /> Turun</div>}
+                          {row.trend === 'same' && <div className="flex items-center justify-center gap-1 text-slate-400 text-[10px] font-black uppercase tracking-widest"><Minus size={16} /> Tetap</div>}
                           {row.trend === 'none' && <span className="text-slate-300">-</span>}
                         </td>
                       </tr>
