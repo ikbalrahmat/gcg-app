@@ -231,7 +231,6 @@ export default function Report() {
                     <th className="px-6 py-4 text-center border-r border-slate-100">Bobot (%)</th>
                     <th className="px-6 py-4 text-center text-indigo-600 border-r border-slate-100">Skor Capaian</th>
                     <th className="px-6 py-4 text-center w-32 border-r border-slate-100">Capaian (%)</th>
-                    <th className="px-6 py-4 text-center w-40">Kategori</th>
                   </tr>
                 </thead>
                 <tbody className="text-slate-700 text-[12px]">
@@ -243,11 +242,6 @@ export default function Report() {
                       <td className="px-6 py-4 text-center font-bold text-slate-500 border-r border-slate-50">{row.bobot.toFixed(3)}</td>
                       <td className="px-6 py-4 text-center font-black text-indigo-700 bg-indigo-50/50 border-r border-slate-50">{row.skorNow.toFixed(3)}</td>
                       <td className="px-6 py-4 text-center font-bold text-slate-700 border-r border-slate-50">{row.persenNow.toFixed(2)}%</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/50 shadow-sm ${row.katNow?.color} ${row.katNow?.bg}`}>
-                          {row.katNow?.label}
-                        </span>
-                      </td>
                     </tr>
                   ))}
                   {/* ASPEK PENYESUAI */}
@@ -263,11 +257,6 @@ export default function Report() {
                         {row.skorNow > 0 ? '+' : ''}{row.skorNow.toFixed(3)}
                       </td>
                       <td className="px-6 py-4 text-center font-bold text-orange-500 border-r border-slate-50 bg-orange-50/40">{row.persenNow.toFixed(2)}%</td>
-                      <td className="px-6 py-4 text-center">
-                        {row.katNow && <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/50 shadow-sm ${row.katNow.color} ${row.katNow.bg}`}>
-                          {row.katNow.label}
-                        </span>}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -277,11 +266,6 @@ export default function Report() {
                     <td className="px-6 py-5 text-center text-indigo-200 border-r border-white/10 text-sm">{totalBobot.toFixed(3)}</td>
                     <td className="px-6 py-5 text-center text-indigo-400 text-lg border-r border-white/10">{totalSkor.toFixed(3)}</td>
                     <td className="px-6 py-5 text-center text-emerald-400 text-lg border-r border-white/10">{totalCapaianPersen.toFixed(2)}%</td>
-                    <td className="px-6 py-5 text-center">
-                      <span className={`px-4 py-2 rounded-xl text-[10px] font-black border border-white/20 shadow-inner ${totalKategori.color} ${totalKategori.bg}`}>
-                        {totalKategori.label}
-                      </span>
-                    </td>
                   </tr>
                 </tfoot>
               </table>
