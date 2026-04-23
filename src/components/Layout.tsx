@@ -51,11 +51,19 @@ export default function Layout({
           setIsOpen={setIsSidebarOpen}
         />
 
-        <main className="mt-[76px] p-6 lg:p-10 flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden custom-scrollbar">
-          {children}
+        {/* REVISI: Footer dimasukin ke sini biar dia ikut scroll sama konten.
+          Gue tambahin 'flex flex-col' dan 'min-h-full' supaya footer bisa didorong ke bawah.
+        */}
+        <main className="mt-[76px] flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="min-h-full flex flex-col">
+            <div className="p-6 lg:p-10 flex-1">
+              {children}
+            </div>
+            
+            {/* Footer sekarang ada di sini, di akhir konten scroll */}
+            <Footer />
+          </div>
         </main>
-
-        <Footer />
       </div>
     </div>
   );

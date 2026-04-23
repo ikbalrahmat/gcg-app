@@ -11,7 +11,7 @@ import {
   Database,
   Activity,
   Archive,
-  X // 🆕 IMPORT ICON X
+  X 
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -92,7 +92,7 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile Backdrop Overlay - closes sidebar when clicked */}
+      {/* Mobile Backdrop Overlay */}
       {isMobile && isOpen && (
         <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in"
@@ -111,23 +111,33 @@ export default function Sidebar({
               }`}
             onClick={() => !isOpen && !isMobile && setIsOpen(true)}
           >
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-2.5 rounded-2xl shrink-0 text-white shadow-lg shadow-indigo-600/30">
-              <BarChart3 className="w-6 h-6" strokeWidth={2.5} />
-            </div>
-            <div className={`ml-4 flex flex-col justify-center overflow-hidden ${(isOpen || isMobile) ? 'w-auto' : 'w-0'}`}>
-              <h1 className="text-2xl font-black text-slate-800 leading-none tracking-tight">
-                PORTAL
-              </h1>
-              <p className="text-[10px] font-bold text-indigo-600 mt-1 uppercase tracking-widest leading-none">
-                GCG Assessment
+            <div className={`flex flex-col justify-center overflow-hidden ${(isOpen || isMobile) ? 'w-auto' : 'w-0'}`}>
+              <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-baseline">
+                <span className="relative inline-flex flex-col items-start">
+                  <span>
+                    <span className="text-indigo-600">G</span>
+                    <span className="text-slate-800">-</span>
+                    <span className="text-slate-800">AS</span>
+                  </span>
+                  <span className="absolute -bottom-1 left-0 w-6 h-[3px] bg-violet-500 rounded-full"></span>
+                </span>
+              </h2>
+              <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest whitespace-nowrap">
+                Governance Assessment System
               </p>
             </div>
           </div>
 
+          {/* PERBAIKAN ICON HAMBURGER: Menghilangkan tabrakan class right-4 dan menggunakan left-1/2 untuk presisi tengah */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`absolute right-4 p-2 rounded-xl text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95 z-10 ${isMobile ? 'flex' : 'hidden lg:flex'
-              } ${(!isOpen && !isMobile) ? 'right-1/2 translate-x-1/2 top-1/2 -translate-y-1/2 bg-slate-50' : 'bg-transparent'}`}
+            className={`absolute top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-300 active:scale-95 z-10 ${
+              isMobile ? 'flex' : 'hidden lg:flex'
+            } ${
+              (!isOpen && !isMobile) 
+                ? 'left-1/2 -translate-x-1/2 bg-slate-50 shadow-sm' 
+                : 'right-4 bg-transparent'
+            }`}
           >
             {isMobile && isOpen ? (
               <X className="w-5 h-5" />
@@ -140,7 +150,7 @@ export default function Sidebar({
         </div>
 
         {/* NAVIGATION MENUS */}
-        <nav className="flex-1 px-4 lg:px-5 py-6 space-y-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <nav className="flex-1 px-4 py-6 space-y-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {menuGroups.map((group, index) => {
             if (group.items.length === 0) return null;
 
@@ -148,8 +158,9 @@ export default function Sidebar({
               <div key={index} className="space-y-2">
                 {group.title && (
                   <h3
-                    className={`text-[10px] font-black text-slate-400 tracking-widest px-4 uppercase transition-all duration-300 ${isOpen || isMobile ? 'opacity-100 flex' : 'opacity-0 hidden'
-                      }`}
+                    className={`text-[10px] font-black text-slate-400 tracking-widest uppercase transition-all duration-300 ${
+                      isOpen || isMobile ? 'opacity-100 flex px-4' : 'opacity-0 hidden px-0'
+                    }`}
                   >
                     {group.title}
                   </h3>
@@ -168,15 +179,19 @@ export default function Sidebar({
                           if (isMobile) setIsOpen(false);
                         }}
                         title={(!isOpen && !isMobile) ? item.label : undefined}
-                        className={`w-full flex items-center px-4 py-3.5 rounded-2xl transition-all duration-200 group ${isActive
+                        // PERBAIKAN ICON MENU: Menggunakan justify-center dan menghapus px-4 saat sidebar tertutup
+                        className={`w-full flex items-center py-3.5 rounded-2xl transition-all duration-200 group ${
+                          isActive
                             ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50'
                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 transparent border border-transparent'
-                          }`}
+                        } ${(!isOpen && !isMobile) ? 'justify-center px-0' : 'px-4'}`}
                       >
                         <Icon className={`w-5 h-5 shrink-0 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-sm' : 'group-hover:scale-110'}`} />
+                        
                         <span
-                          className={`ml-4 font-bold text-[14px] whitespace-nowrap transition-all duration-300 ${(isOpen || isMobile) ? 'opacity-100 translate-x-0 block' : 'opacity-0 -translate-x-4 hidden'
-                            }`}
+                          className={`font-bold text-[14px] whitespace-nowrap transition-all duration-300 ${
+                            (isOpen || isMobile) ? 'opacity-100 translate-x-0 block ml-4' : 'opacity-0 -translate-x-4 hidden ml-0'
+                          }`}
                         >
                           {item.label}
                         </span>
@@ -195,18 +210,22 @@ export default function Sidebar({
         </nav>
 
         {/* LOGOUT */}
-        <div className="p-4 lg:p-5 border-t border-slate-50 shrink-0 mt-auto bg-slate-50/50">
+        <div className="p-4 border-t border-slate-50 shrink-0 mt-auto bg-slate-50/50">
           <button
             onClick={signOut}
             title={(!isOpen && !isMobile) ? 'Keluar Sistem' : undefined}
-            className={`w-full flex items-center px-4 py-3.5 rounded-2xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-200 border border-transparent ${(!isOpen && !isMobile) ? 'justify-center' : ''}`}
+            // PERBAIKAN ICON LOGOUT: Menggunakan justify-center saat tertutup
+            className={`w-full flex items-center py-3.5 rounded-2xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-200 border border-transparent ${
+              (!isOpen && !isMobile) ? 'justify-center px-0' : 'px-4'
+            }`}
           >
             <LogOut className="w-5 h-5 shrink-0" />
             <span
-              className={`ml-4 font-bold text-[14px] transition-all duration-300 ${(isOpen || isMobile) ? 'block' : 'hidden'
-                }`}
+              className={`font-bold text-[14px] transition-all duration-300 ${
+                (isOpen || isMobile) ? 'block ml-4' : 'hidden ml-0'
+              }`}
             >
-              Keluar
+              Logout
             </span>
           </button>
         </div>
