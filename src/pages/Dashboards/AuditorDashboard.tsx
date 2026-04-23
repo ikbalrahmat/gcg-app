@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 import { fetchApi } from '../../utils/api';
-import { FileSearch, Clock, AlertCircle, FileText, ArrowRight, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { FileSearch, Clock, AlertCircle, FileText, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { calculateGCGData } from '../../utils/gcgCalculator';
 
 
