@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import LogoPeruri from '../../assets/LogoPeruri.png';
 import BgImage from '../../assets/Baground.jpg';
 
