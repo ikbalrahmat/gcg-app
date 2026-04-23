@@ -911,7 +911,7 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
 
       {/* MODAL DOCUMENT VIEWER */}
       {viewingDocument && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-5xl h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-slate-900 px-6 py-4 flex justify-between items-center text-white shrink-0 shadow-md z-10">
               <div className="flex items-center space-x-3">
@@ -982,12 +982,29 @@ const KertasKerja: React.FC<KertasKerjaProps> = ({
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">Oleh: {e.divisi}</span>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">Verified</span>
+                          <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${
+                            e.status === 'Verified' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' :
+                            e.status === 'Rejected' ? 'text-rose-600 bg-rose-50 border-rose-100' :
+                            e.status === 'Menunggu Verifikasi' || e.status === 'Pending' ? 'text-amber-600 bg-amber-50 border-amber-100' :
+                            'text-slate-500 bg-slate-100 border-slate-200'
+                          }`}>
+                            {e.status || 'Pending'}
+                          </span>
                         </div>
                       </div>
-                      <button type="button" onClick={() => handleLinkFromArchive(e)} className="mt-4 w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-black text-[10px] uppercase py-2.5 rounded-lg transition-all flex justify-center items-center gap-1.5">
-                        <CheckCircle size={14} /> Gunakan Dokumen Ini
-                      </button>
+                      <div className="mt-4 flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setViewingDocument(e)} className="flex-1 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 font-black text-[10px] uppercase py-2 rounded-lg transition-all flex justify-center items-center gap-1.5">
+                            <Eye size={14} /> Pratinjau
+                          </button>
+                          <a href={e.fileUrl ? e.fileUrl.replace(/^http:\/\//i, 'https://') : '#'} target="_blank" download className="p-2 flex-none bg-slate-50 hover:bg-indigo-600 text-slate-500 hover:text-white border border-slate-200 hover:border-indigo-600 rounded-lg transition-all flex items-center justify-center">
+                            <Download size={14} />
+                          </a>
+                        </div>
+                        <button type="button" onClick={() => handleLinkFromArchive(e)} className="w-full bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 font-black text-[10px] uppercase py-2.5 rounded-lg transition-all flex justify-center items-center gap-1.5">
+                          <CheckCircle size={14} /> Gunakan Dokumen Ini
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

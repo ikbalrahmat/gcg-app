@@ -49,21 +49,21 @@ export default function Sidebar({
           : []),
 
         ...(user?.role === 'auditor' ||
-        user?.role === 'admin_spi' ||
-        user?.role === 'manajemen' ||
-        user?.role === 'auditee'
+          user?.role === 'admin_spi' ||
+          user?.role === 'manajemen' ||
+          user?.role === 'auditee'
           ? [{ id: 'monitoring', label: 'Monitoring', icon: Monitor }]
           : []),
 
         ...(user?.role === 'auditor' ||
-        user?.role === 'admin_spi' ||
-        user?.role === 'manajemen'
+          user?.role === 'admin_spi' ||
+          user?.role === 'manajemen'
           ? [{ id: 'report', label: 'Report', icon: BarChart3 }]
           : []),
 
         ...(user?.role === 'auditor' ||
-        user?.role === 'admin_spi' ||
-        user?.role === 'manajemen'
+          user?.role === 'admin_spi' ||
+          user?.role === 'manajemen'
           ? [{ id: 'arsip-dokumen', label: 'Arsip Dokumen', icon: Archive }]
           : []),
       ],
@@ -72,12 +72,12 @@ export default function Sidebar({
       title: 'SISTEM',
       items: [
         ...(user?.role === 'super_admin' ||
-        user?.role === 'admin_spi'
+          user?.role === 'admin_spi'
           ? [{ id: 'user-management', label: 'Manajemen Akun', icon: Users }]
           : []),
 
         ...(user?.role === 'super_admin' ||
-        user?.role === 'admin_spi'
+          user?.role === 'admin_spi'
           ? [{ id: 'master-data', label: 'Master Data', icon: Database }]
           : []),
 
@@ -94,23 +94,21 @@ export default function Sidebar({
     <>
       {/* Mobile Backdrop Overlay - closes sidebar when clicked */}
       {isMobile && isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity duration-300 animate-in fade-in"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       <aside
-        className={`bg-white border-r border-indigo-100/50 h-screen fixed left-0 top-0 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-50 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.02)] ${
-          isMobile ? (isOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full') : (isOpen ? 'w-72' : 'w-24')
-        }`}
+        className={`bg-white border-r border-indigo-100/50 h-screen fixed left-0 top-0 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-50 overflow-hidden shadow-[4px_0_24px_rgba(0,0,0,0.02)] ${isMobile ? (isOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full') : (isOpen ? 'w-72' : 'w-24')
+          }`}
       >
         {/* HEADER BRANDING */}
         <div className="h-[76px] px-6 lg:px-8 flex items-center shrink-0 border-b border-slate-50 relative group">
           <div
-            className={`flex items-center transition-all duration-300 w-full ${
-              (isOpen || isMobile) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 cursor-pointer'
-            }`}
+            className={`flex items-center transition-all duration-300 w-full ${(isOpen || isMobile) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 cursor-pointer'
+              }`}
             onClick={() => !isOpen && !isMobile && setIsOpen(true)}
           >
             <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-2.5 rounded-2xl shrink-0 text-white shadow-lg shadow-indigo-600/30">
@@ -128,9 +126,8 @@ export default function Sidebar({
 
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`absolute right-4 p-2 rounded-xl text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95 z-10 ${
-              isMobile ? 'flex' : 'hidden lg:flex'
-            } ${(!isOpen && !isMobile) ? 'right-1/2 translate-x-1/2 top-1/2 -translate-y-1/2 bg-slate-50' : 'bg-transparent'}`}
+            className={`absolute right-4 p-2 rounded-xl text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95 z-10 ${isMobile ? 'flex' : 'hidden lg:flex'
+              } ${(!isOpen && !isMobile) ? 'right-1/2 translate-x-1/2 top-1/2 -translate-y-1/2 bg-slate-50' : 'bg-transparent'}`}
           >
             {isMobile && isOpen ? (
               <X className="w-5 h-5" />
@@ -151,9 +148,8 @@ export default function Sidebar({
               <div key={index} className="space-y-2">
                 {group.title && (
                   <h3
-                    className={`text-[10px] font-black text-slate-400 tracking-widest px-4 uppercase transition-all duration-300 ${
-                      isOpen || isMobile ? 'opacity-100 flex' : 'opacity-0 hidden'
-                    }`}
+                    className={`text-[10px] font-black text-slate-400 tracking-widest px-4 uppercase transition-all duration-300 ${isOpen || isMobile ? 'opacity-100 flex' : 'opacity-0 hidden'
+                      }`}
                   >
                     {group.title}
                   </h3>
@@ -172,21 +168,19 @@ export default function Sidebar({
                           if (isMobile) setIsOpen(false);
                         }}
                         title={(!isOpen && !isMobile) ? item.label : undefined}
-                        className={`w-full flex items-center px-4 py-3.5 rounded-2xl transition-all duration-200 group ${
-                          isActive
+                        className={`w-full flex items-center px-4 py-3.5 rounded-2xl transition-all duration-200 group ${isActive
                             ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50'
                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 transparent border border-transparent'
-                        }`}
+                          }`}
                       >
                         <Icon className={`w-5 h-5 shrink-0 transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-sm' : 'group-hover:scale-110'}`} />
                         <span
-                          className={`ml-4 font-bold text-[14px] whitespace-nowrap transition-all duration-300 ${
-                            (isOpen || isMobile) ? 'opacity-100 translate-x-0 block' : 'opacity-0 -translate-x-4 hidden'
-                          }`}
+                          className={`ml-4 font-bold text-[14px] whitespace-nowrap transition-all duration-300 ${(isOpen || isMobile) ? 'opacity-100 translate-x-0 block' : 'opacity-0 -translate-x-4 hidden'
+                            }`}
                         >
                           {item.label}
                         </span>
-                        
+
                         {/* Indicator Pill for active item */}
                         {isActive && (isOpen || isMobile) && (
                           <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>
@@ -209,11 +203,10 @@ export default function Sidebar({
           >
             <LogOut className="w-5 h-5 shrink-0" />
             <span
-              className={`ml-4 font-bold text-[14px] transition-all duration-300 ${
-                (isOpen || isMobile) ? 'block' : 'hidden'
-              }`}
+              className={`ml-4 font-bold text-[14px] transition-all duration-300 ${(isOpen || isMobile) ? 'block' : 'hidden'
+                }`}
             >
-              Keluar Sistem
+              Keluar
             </span>
           </button>
         </div>
