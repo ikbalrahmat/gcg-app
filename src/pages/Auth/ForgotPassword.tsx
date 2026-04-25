@@ -148,7 +148,7 @@ export default function ForgotPassword({ onBackToLogin }: ForgotPasswordProps) {
         {/* Footer (Posisinya selalu di bawah layar/kontainer) */}
         <div className="text-center w-full mt-4 pb-2 relative z-10">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            G-AS © 2026
+            © 2026 G-AS - Governance Assessment System.
           </p>
         </div>
         
