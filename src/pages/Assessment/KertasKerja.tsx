@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { ChevronLeft, ChevronRight, ChevronDown, FileText, Save, Layers, X, UploadCloud, BellRing, Clock, AlertCircle, History as HistoryIcon, Copy, Download, Trash2, Eye, Lock, CheckCircle2, AlertTriangle, Settings, FolderOpen, PanelRightClose, Search, Navigation, Filter, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, FileText, Save, Layers, X, UploadCloud, BellRing, AlertCircle, History as HistoryIcon, Copy, Download, Trash2, Eye, Lock, CheckCircle2, AlertTriangle, Settings, FolderOpen, PanelRightClose, Search, Filter } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { EvidenceFile, DocumentRequest } from '../../types';
 
