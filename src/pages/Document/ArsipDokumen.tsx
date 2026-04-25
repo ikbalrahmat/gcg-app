@@ -3,7 +3,7 @@ import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Archive, ChevronDown, Download, FileText, 
-  CheckCircle, Clock, XCircle, AlertTriangle, Eye, Search, Target, Filter, Layers 
+  CheckCircle, Clock, XCircle, AlertTriangle, Eye, Search, Target, Filter, Layers, RefreshCw 
 } from 'lucide-react';
 import type { EvidenceFile, DocumentRequest } from '../../types';
 
@@ -23,6 +23,7 @@ export default function ArsipDokumen() {
   const [evidences, setEvidences] = useState<EvidenceFile[]>([]);
   const [documentRequests, setDocumentRequests] = useState<DocumentRequest[]>([]);
   const [aspectsMap, setAspectsMap] = useState<Record<string, string>>({});
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +32,7 @@ export default function ArsipDokumen() {
   const [viewingDoc, setViewingDoc] = useState<{url: string, name: string} | null>(null);
 
   const fetchData = async () => {
+    setIsSyncing(true);
     const headers = { 'Accept': 'application/json' };
 
     try {
@@ -78,6 +80,8 @@ export default function ArsipDokumen() {
 
     } catch (e) {
       console.error("Error fetching arsip data", e);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
     }
   };
 
@@ -168,7 +172,15 @@ export default function ArsipDokumen() {
           <Archive className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Arsip Dokumen</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Arsip Dokumen</h1>
+            {isSyncing && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full animate-in fade-in zoom-in duration-300">
+                <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Memuat...</span>
+              </div>
+            )}
+          </div>
           <p className="text-sm font-medium text-slate-500">Pusat Repositori Bukti Assessment GCG</p>
         </div>
       </div>
@@ -202,7 +214,8 @@ export default function ArsipDokumen() {
               <Target className="w-4 h-4 text-indigo-500" />
             </div>
             <select 
-              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-white transition-all cursor-pointer shadow-sm"
+              disabled={isSyncing}
+              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-white transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               value={selectedAssessmentId}
               onChange={(e) => setSelectedAssessmentId(e.target.value)}
             >
@@ -227,7 +240,8 @@ export default function ArsipDokumen() {
               <Filter className="w-4 h-4 text-indigo-500" />
             </div>
             <select 
-              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-white transition-all cursor-pointer shadow-sm"
+              disabled={isSyncing}
+              className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-white transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               value={selectedAspect}
               onChange={(e) => setSelectedAspect(e.target.value)}
             >
@@ -249,7 +263,8 @@ export default function ArsipDokumen() {
           </div>
           <input
             type="text"
-            className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-10 p-2.5 outline-none transition-all shadow-sm placeholder-slate-400 hover:bg-white"
+            disabled={isSyncing}
+            className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-semibold rounded-xl focus:ring-2 focus:ring-indigo-500 block pl-10 p-2.5 outline-none transition-all shadow-sm placeholder-slate-400 hover:bg-white disabled:opacity-50"
             placeholder="Cari dokumen / divisi..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -258,7 +273,7 @@ export default function ArsipDokumen() {
       </div>
 
       {/* DATA TABLES */}
-      <div className="space-y-6">
+      <div className={`space-y-6 transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
         {groupedData.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center p-16 text-center">
             <div className="w-20 h-20 bg-slate-50 border border-slate-100 text-slate-300 rounded-full flex items-center justify-center mb-4">

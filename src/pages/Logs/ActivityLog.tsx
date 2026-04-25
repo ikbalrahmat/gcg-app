@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
-import { Activity, Search, ShieldAlert, CheckCircle2, XCircle, LogOut, Edit, Trash2, PlusCircle, Download, Calendar, X } from 'lucide-react';
+import { Activity, Search, ShieldAlert, CheckCircle2, XCircle, LogOut, Edit, Trash2, PlusCircle, Download, Calendar, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function ActivityLog() {
@@ -13,10 +13,12 @@ export default function ActivityLog() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
 
   useEffect(() => {
     const fetchLogs = async () => {
+      setIsSyncing(true);
       try {
         const response = await fetchApi('/audit-logs', {
           });
@@ -26,6 +28,8 @@ export default function ActivityLog() {
         }
       } catch (error) {
         console.error('Gagal mengambil audit log:', error);
+      } finally {
+        setTimeout(() => setIsSyncing(false), 500);
       }
     };
 
@@ -146,25 +150,34 @@ export default function ActivityLog() {
             <Activity className="w-8 h-8 text-indigo-600" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Audit Trail</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Audit Trail</h1>
+              {isSyncing && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full animate-in fade-in zoom-in duration-300">
+                  <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Memuat...</span>
+                </div>
+              )}
+            </div>
             <p className="text-sm font-semibold text-slate-500 mt-1">Pantau seluruh aktivitas pengguna dan perubahan sistem.</p>
           </div>
         </div>
-        <button onClick={() => setShowExportModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/30 active:scale-95">
+        <button disabled={isSyncing} onClick={() => setShowExportModal(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
           <Download size={16} strokeWidth={3} /> Export Log
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
         <div className="p-4 border-b border-slate-100 bg-slate-50">
           <div className="relative w-72">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
             <input
               type="text"
+              disabled={isSyncing}
               placeholder="Cari user, aktivitas, IP..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
             />
           </div>
         </div>

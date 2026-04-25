@@ -43,6 +43,7 @@ export default function Monitoring() {
   const [viewMode, setViewMode] = useState<'division' | 'level'>('division');
   const [selectedFilter, setSelectedFilter] = useState<string>('Semua');
   const [searchQuery, setSearchQuery] = useState<string>(''); // FITUR SEARCH BARU
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
   
   const [tasks, setTasks] = useState<TLTask[]>([]);
   const [assessmentsList, setAssessmentsList] = useState<AssessmentMeta[]>([]);
@@ -73,6 +74,7 @@ export default function Monitoring() {
     (userRole === 'auditor' && ['ketua tim', 'pengendali teknis'].includes(userLevel));
 
   const fetchData = async () => {
+    setIsSyncing(true);
     const headers = {  'Accept': 'application/json' };
 
     try {
@@ -159,6 +161,8 @@ export default function Monitoring() {
 
     } catch (e) { 
       console.error("Error fetching data monitoring", e); 
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
     }
   };
 
@@ -353,7 +357,15 @@ export default function Monitoring() {
             <Monitor className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Monitoring Penilaian</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Monitoring Penilaian</h1>
+              {isSyncing && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full animate-in fade-in zoom-in duration-300">
+                  <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Memuat...</span>
+                </div>
+              )}
+            </div>
             <p className="text-sm font-medium text-slate-500">Dashboard Pemantauan Tindak Lanjut (PTL)</p>
           </div>
         </div>
@@ -363,7 +375,8 @@ export default function Monitoring() {
             <Target className="w-4 h-4 text-indigo-500" />
           </div>
           <select 
-            className="w-full appearance-none bg-white border border-slate-300 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:bg-slate-50 transition-all cursor-pointer shadow-sm"
+            disabled={isSyncing}
+            className="w-full appearance-none bg-white border border-slate-300 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:bg-slate-50 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             value={selectedAssessmentId}
             onChange={(e) => {
               setSelectedAssessmentId(e.target.value);
@@ -389,7 +402,7 @@ export default function Monitoring() {
       </div>
 
       {/* --- 4 KARTU STATISTIK SUMMARY --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">{isAnggota ? 'Tugas Saya' : 'Total Rekomendasi'}</span>
@@ -432,12 +445,12 @@ export default function Monitoring() {
               <button onClick={() => { setViewMode('level'); setSelectedFilter('Semua'); setExpandedTaskId(null); setSearchQuery(''); }} className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${viewMode === 'level' ? 'bg-white text-indigo-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'}`}>By Aspek</button>
             </div>
             
-            <button onClick={fetchData} className="w-full sm:w-auto flex justify-center items-center px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 uppercase tracking-widest shadow-sm bg-white transition-all active:scale-95 group">
-              <RefreshCw className="w-4 h-4 mr-2 text-slate-400 group-hover:text-indigo-500 transition-transform group-active:rotate-180" strokeWidth={2.5}/> Sinkronisasi Data
+            <button onClick={fetchData} disabled={isSyncing} className="w-full sm:w-auto flex justify-center items-center px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 uppercase tracking-widest shadow-sm bg-white transition-all active:scale-95 group disabled:opacity-50 disabled:pointer-events-none">
+              <RefreshCw className={`w-4 h-4 mr-2 text-slate-400 group-hover:text-indigo-500 transition-transform ${isSyncing ? 'animate-spin text-indigo-500' : 'group-active:rotate-180'}`} strokeWidth={2.5}/> Sinkronisasi Data
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
             <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
               <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                 <Layers size={16} className="text-indigo-500"/> Rekapitulasi {viewMode === 'division' ? 'Per Unit Kerja' : 'Per Aspek GCG'}
@@ -545,7 +558,8 @@ export default function Monitoring() {
               </div>
               <input
                 type="text"
-                className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 block pl-10 p-2.5 outline-none transition-all shadow-sm placeholder-slate-400"
+                disabled={isSyncing}
+                className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 block pl-10 p-2.5 outline-none transition-all shadow-sm placeholder-slate-400 disabled:opacity-50"
                 placeholder="Cari rincian / parameter..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -561,7 +575,7 @@ export default function Monitoring() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
           {selectedFilter === 'Semua' && isGodMode && !searchQuery ? (
             <div className="p-16 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-indigo-50 text-indigo-300 rounded-full flex items-center justify-center mb-4"><Layers size={32} strokeWidth={2}/></div>

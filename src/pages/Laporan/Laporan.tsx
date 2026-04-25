@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Upload, Download, FileText, X, AlertCircle, CheckCircle2, Target, Eye, LayoutList, ChevronDown } from 'lucide-react';
+import { Upload, Download, FileText, X, AlertCircle, CheckCircle2, Target, Eye, LayoutList, ChevronDown, RefreshCw } from 'lucide-react';
 import type { MasterAspect } from '../../data/masterIndicators';
 import { calculateGCGData } from '../../utils/gcgCalculator';
 
@@ -24,10 +24,12 @@ export default function Report() {
   
   const [previewFile, setPreviewFile] = useState<{name: string, fileData: string, tahun: string} | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://127.0.0.1:8000'; // Untuk narik file dari storage
 
   const fetchData = async () => {
+    setIsSyncing(true);
     const headers = {  'Accept': 'application/json' };
 
     try {
@@ -52,6 +54,8 @@ export default function Report() {
       }
     } catch (e) {
       console.error("Gagal load data Laporan", e);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
     }
   };
 
@@ -117,7 +121,15 @@ export default function Report() {
             <LayoutList className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Laporan & Rekapitulasi</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Laporan & Rekapitulasi</h1>
+              {isSyncing && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full animate-in fade-in zoom-in duration-300">
+                  <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Memuat...</span>
+                </div>
+              )}
+            </div>
             <p className="text-sm font-medium text-slate-500">Tabel Rincian Penilaian dan Dokumen Final GCG</p>
           </div>
         </div>
@@ -127,7 +139,8 @@ export default function Report() {
             <Target className="w-4 h-4 text-indigo-500" />
           </div>
           <select 
-            className="w-full appearance-none bg-white border border-slate-300 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:bg-slate-50 transition-all cursor-pointer shadow-sm"
+            disabled={isSyncing}
+            className="w-full appearance-none bg-white border border-slate-300 rounded-xl py-2.5 pl-10 pr-10 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 hover:bg-slate-50 transition-all cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             value={selectedAssessmentId}
             onChange={(e) => setSelectedAssessmentId(e.target.value)}
           >
@@ -154,7 +167,7 @@ export default function Report() {
           <p className="text-slate-500 font-medium text-sm max-w-md">Laporan akan muncul setelah Assessment GCG diinisialisasi dan mulai diproses.</p>
         </div>
       ) : activeAssessment ? (
-        <div className="space-y-6">
+        <div className={`space-y-6 transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
           
           {/* PANEL UPLOAD / DOKUMEN LAPORAN FINAL (Compact Dark Panel) */}
           <div className="bg-slate-900 rounded-2xl shadow-md overflow-hidden relative border border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6 p-6">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { FileText, CheckCircle, Clock, AlertCircle, UploadCloud, Eye, Trash2, X, Download, Info } from 'lucide-react';
+import { FileText, CheckCircle, Clock, AlertCircle, UploadCloud, Eye, Trash2, X, Download, Info, RefreshCw } from 'lucide-react';
 import type { EvidenceFile, DocumentRequest } from '../../types';
 
 interface FileProps {
@@ -20,12 +20,12 @@ export default function File(_props: FileProps) {
   const [dbRequests, setDbRequests] = useState<DocumentRequest[]>([]);
   const [dbAssessments, setDbAssessments] = useState<any[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
   
 
   const fetchData = async () => {
-    setIsLoading(true);
+    setIsSyncing(true);
     const headers = {  'Accept': 'application/json' };
     try {
       const [resReq, resEv, resAss] = await Promise.all([
@@ -39,7 +39,7 @@ export default function File(_props: FileProps) {
     } catch (e) { 
       console.error(e); 
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsSyncing(false), 500);
     }
   };
 
@@ -160,20 +160,23 @@ export default function File(_props: FileProps) {
             <FileText className="w-8 h-8" strokeWidth={2} />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">Tagihan Dokumen</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">Tagihan Dokumen</h1>
+              {isSyncing && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full animate-in fade-in zoom-in duration-300">
+                  <RefreshCw className="w-3 h-3 text-indigo-600 animate-spin" />
+                  <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Memuat...</span>
+                </div>
+              )}
+            </div>
             <p className="text-sm font-semibold text-slate-500 mt-1 flex items-center gap-2">Pemenuhan Data Divisi: <span className="font-bold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100">{user?.divisi || 'Semua Entitas'}</span></p>
           </div>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
-           <div className="animate-spin h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full mb-6"></div>
-           <h2 className="text-xl font-black text-slate-800 mb-2">Memuat Tagihan Dokumen</h2>
-           <p className="text-slate-500 font-medium text-sm">Harap tunggu sebentar, sedang sinkronisasi data dengan server...</p>
-        </div>
-      ) : uniqueYears.length === 0 ? (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
+      <div className={`transition-opacity duration-500 ${isSyncing ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
+        {uniqueYears.length === 0 ? (
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-12 text-center flex flex-col items-center justify-center min-h-[400px]">
            <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mb-6 shadow-sm"><CheckCircle className="w-12 h-12 text-emerald-500/80" strokeWidth={2} /></div>
            <h2 className="text-2xl font-black text-slate-800 mb-3 tracking-tight">Belum Ada Tagihan GCG</h2>
            <p className="text-slate-500 font-medium max-w-md">Keren! Saat ini tidak ada dokumen GCG yang ditagihkan oleh Tim Auditor ke divisi Anda.</p>
@@ -306,7 +309,8 @@ export default function File(_props: FileProps) {
             </table>
           </div>
         </div>
-      )}
+        )}
+      </div>
 
       {/* PDF VIEWER MODAL */}
       {viewingDocument && (
